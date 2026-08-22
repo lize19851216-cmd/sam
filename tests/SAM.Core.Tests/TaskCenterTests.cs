@@ -1,12 +1,23 @@
 using SAM.Core.Tasks;
 using SAM.Infrastructure.Data;
 using SAM.PluginHost;
+using SAM.Infrastructure.Steam;
+using SAM.Core.Steam;
 using Xunit;
 
 namespace SAM.Core.Tests;
 
 public sealed class TaskCenterTests
 {
+    [Fact]
+    public async Task SteamKit_adapter_maps_sanitized_transport_result_without_credentials()
+    {
+        var account = new SAM.Core.Account { AccountName = "mock_0001" };
+        var client = new SteamKitClientAdapter(new StubSteamTransport());
+        var result = await client.LoginAsync(account, CancellationToken.None);
+        Assert.Equal(SAM.Core.AccountStatus.Online, result.Status);
+        Assert.Equal("76561190000000001", account.SteamId);
+    }
     [Fact]
     public async Task Retries_transient_failure_and_persists_terminal_state()
     {
@@ -98,5 +109,10 @@ public sealed class TaskCenterTests
     private sealed class TestPlugin(string id) : SAM.Core.Plugins.ISamPlugin
     {
         public string Id => id; public string Name => id; public Version Version => new(1, 0); public void Initialize() { }
+    }
+    private sealed class StubSteamTransport : ISteamAuthenticationTransport
+    {
+        public Task<SteamAuthenticationResult> AuthenticateAsync(string accountName, CancellationToken cancellationToken) =>
+            Task.FromResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Online, "connected", "76561190000000001", "mock"));
     }
 }
