@@ -14,6 +14,14 @@ public sealed class SamTaskCenter
     /// <summary>Raised after a task state is persisted, with an immutable UI-safe snapshot. Handler failures are isolated from task execution.</summary>
     public event EventHandler<SamTaskUpdate>? TaskChanged;
 
+    public async Task<SamTaskRecord> CancelAsync(SamTaskRecord task, string message = "Cancelled")
+    {
+        ArgumentNullException.ThrowIfNull(task);
+        if (task.Status is SamTaskStatus.Succeeded or SamTaskStatus.Failed or SamTaskStatus.Cancelled) return task;
+        await FinishAsync(task, SamTaskStatus.Cancelled, message, CancellationToken.None);
+        return task;
+    }
+
     public async Task<SamTaskRecord> ExecuteAsync(SamTaskRecord task, Func<CancellationToken, Task<SamTaskOutcome>> operation, RetryPolicy? policy = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(task);
@@ -24,8 +32,7 @@ public sealed class SamTaskCenter
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                await FinishAsync(task, SamTaskStatus.Cancelled, "Cancelled", CancellationToken.None);
-                return task;
+                return await CancelAsync(task);
             }
             task.StartedAt ??= DateTimeOffset.UtcNow;
             await SetStateAsync(task, SamTaskStatus.Running, "Running", cancellationToken);
@@ -42,7 +49,7 @@ public sealed class SamTaskCenter
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                await FinishAsync(task, SamTaskStatus.Cancelled, "Cancelled", CancellationToken.None); return task;
+                return await CancelAsync(task);
             }
             catch (OperationCanceledException)
             {
