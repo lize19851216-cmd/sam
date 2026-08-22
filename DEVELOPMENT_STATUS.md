@@ -22,6 +22,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Task Center observer fault isolation
 - [x] Plugin management UI (local plugin discovery and load report)
 - [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
+- [x] Default-deny trusted-plugin SHA-256 manifest policy
 - [ ] Plugin process isolation policy for untrusted third-party code
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
@@ -33,4 +34,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 17/17 tests
+- `dotnet test SAM.slnx --no-build` — passed, 18/18 tests
