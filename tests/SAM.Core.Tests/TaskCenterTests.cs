@@ -144,6 +144,29 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Sqlite_store_pages_task_history_in_descending_update_order()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var store = new SqliteTaskStore(path);
+            await store.InitializeAsync();
+            var baseTime = DateTimeOffset.UtcNow;
+            var tasks = Enumerable.Range(1, 5).Select(index => new SamTaskRecord
+            {
+                TaskType = $"Task-{index}",
+                Status = SamTaskStatus.Succeeded,
+                UpdatedAt = baseTime.AddMinutes(index)
+            }).ToArray();
+            foreach (var task in tasks) await store.SaveAsync(task);
+
+            var page = await store.GetPageAsync(1, 2);
+            Assert.Equal(["Task-4", "Task-3"], page.Select(task => task.TaskType));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_round_trips_generated_account()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

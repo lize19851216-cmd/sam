@@ -19,6 +19,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Atomic replacement of regenerated simulated-account snapshots
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [x] Task Center real-time UI updates for running, retrying and terminal states
+- [x] SQLite Task Center history pagination API
 - [x] Task Center observer fault isolation
 - [x] Cancellation persistence for queued as well as active login tasks
 - [x] Plugin management UI (local plugin discovery and load report)
@@ -35,4 +36,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 18/18 tests
+- `dotnet test SAM.slnx --no-build` — passed, 19/19 tests

@@ -116,7 +116,7 @@ public partial class MainWindow : Window
     private async Task RefreshTasksAsync()
     {
         _tasks.Clear();
-        foreach (var task in await _taskStore.GetRecentAsync(200)) _tasks.Add(task);
+        foreach (var task in await _taskStore.GetPageAsync(0, 200)) _tasks.Add(task);
     }
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
