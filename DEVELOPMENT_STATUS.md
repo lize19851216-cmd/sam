@@ -20,6 +20,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [x] Task Center real-time UI updates for running, retrying and terminal states
 - [x] SQLite Task Center history pagination API
+- [x] Task Center UI “load more” history control
 - [x] Task Center observer fault isolation
 - [x] Cancellation persistence for queued as well as active login tasks
 - [x] Plugin management UI (local plugin discovery and load report)

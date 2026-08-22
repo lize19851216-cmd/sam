@@ -32,6 +32,8 @@
      </DataGrid.Columns>
     </DataGrid>
     <GroupBox Grid.Row="1" Header="Task Center" Margin="0,10,0,0">
+     <DockPanel>
+     <Button x:Name="LoadMoreTasksButton" DockPanel.Dock="Bottom" Content="加载更多任务历史" Click="LoadMoreTasks_Click" Padding="10,4" Margin="0,6,0,0" IsEnabled="False"/>
      <DataGrid x:Name="TasksGrid" AutoGenerateColumns="False" IsReadOnly="True">
       <DataGrid.Columns>
        <DataGridTextColumn Header="类型" Binding="{Binding TaskType}" Width="*"/>
@@ -41,6 +43,7 @@
        <DataGridTextColumn Header="更新时间" Binding="{Binding UpdatedAt}" Width="2*"/>
       </DataGrid.Columns>
      </DataGrid>
+     </DockPanel>
     </GroupBox>
     <GroupBox Grid.Row="2" Header="Plugins" Margin="0,10,0,0">
      <DataGrid x:Name="PluginsGrid" AutoGenerateColumns="False" IsReadOnly="True">

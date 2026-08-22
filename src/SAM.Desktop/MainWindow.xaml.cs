@@ -24,6 +24,8 @@ public partial class MainWindow : Window
     private readonly SqliteTaskStore _taskStore;
     private readonly SamTaskCenter _taskCenter;
     private readonly ILogger _log;
+    private const int TaskHistoryPageSize = 200;
+    private int _taskHistoryOffset;
     private CancellationTokenSource? _loginCancellation;
 
     public MainWindow()
@@ -116,7 +118,20 @@ public partial class MainWindow : Window
     private async Task RefreshTasksAsync()
     {
         _tasks.Clear();
-        foreach (var task in await _taskStore.GetPageAsync(0, 200)) _tasks.Add(task);
+        _taskHistoryOffset = 0;
+        await LoadTaskHistoryPageAsync(reset: true);
+    }
+
+    private async void LoadMoreTasks_Click(object sender, RoutedEventArgs e) => await LoadTaskHistoryPageAsync();
+
+    private async Task LoadTaskHistoryPageAsync(bool reset = false)
+    {
+        LoadMoreTasksButton.IsEnabled = false;
+        var page = await _taskStore.GetPageAsync(_taskHistoryOffset, TaskHistoryPageSize);
+        foreach (var task in page.Where(task => _tasks.All(existing => existing.Id != task.Id))) _tasks.Add(task);
+        _taskHistoryOffset += page.Count;
+        LoadMoreTasksButton.IsEnabled = page.Count == TaskHistoryPageSize;
+        if (!reset) _log.Information("Loaded {TaskCount} additional task history records at offset {TaskOffset}", page.Count, _taskHistoryOffset);
     }
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
