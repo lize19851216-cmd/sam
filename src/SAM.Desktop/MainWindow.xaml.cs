@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         _database = new SamDatabase(Path.Combine(appDirectory, "sam.db"));
         _taskStore = new SqliteTaskStore(Path.Combine(appDirectory, "sam.db"));
         _taskCenter = new SamTaskCenter(_taskStore);
+        _taskCenter.TaskChanged += TaskCenter_TaskChanged;
         _log = SamLog.Create(Path.Combine(appDirectory, "logs"));
         AccountsGrid.ItemsSource = _accounts;
         TasksGrid.ItemsSource = _tasks;
@@ -114,6 +115,30 @@ public partial class MainWindow : Window
     {
         _tasks.Clear();
         foreach (var task in await _taskStore.GetRecentAsync(200)) _tasks.Add(task);
+    }
+
+    private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
+    {
+        if (Dispatcher.HasShutdownStarted) return;
+        _ = Dispatcher.BeginInvoke(() => UpsertTask(update));
+    }
+
+    private void UpsertTask(SamTaskUpdate update)
+    {
+        var existing = _tasks.FirstOrDefault(task => task.Id == update.Id);
+        if (existing is null)
+        {
+            _tasks.Insert(0, update.ToRecord());
+            return;
+        }
+
+        existing.Status = update.Status;
+        existing.RetryCount = update.RetryCount;
+        existing.Message = update.Message;
+        existing.StartedAt = update.StartedAt;
+        existing.CompletedAt = update.CompletedAt;
+        existing.UpdatedAt = update.UpdatedAt;
+        TasksGrid.Items.Refresh();
     }
 
     private void LoadPlugins_Click(object sender, RoutedEventArgs e)
