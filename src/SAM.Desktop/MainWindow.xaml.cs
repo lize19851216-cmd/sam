@@ -173,11 +173,22 @@ public partial class MainWindow : Window
             _log.Warning("Failed to unload {FailureCount} plugins before reloading", unloadReport.Failures.Count);
         var report = _pluginLoader.LoadWithReport(directory);
         _plugins.Clear();
-        foreach (var plugin in report.Plugins) _plugins.Add(new(plugin.Id, plugin.Name, plugin.Version.ToString(), "Loaded"));
-        foreach (var failure in report.Failures) _plugins.Add(new(Path.GetFileName(failure.AssemblyPath), "", "", failure.Message));
+        foreach (var plugin in report.Plugins) _plugins.Add(new(plugin.Id, plugin.Name, plugin.Version.ToString(), "Loaded", ""));
+        foreach (var failure in report.Failures)
+        {
+            var hash = File.Exists(failure.AssemblyPath) ? PluginTrustPolicy.CalculateHash(failure.AssemblyPath) : "";
+            _plugins.Add(new(Path.GetFileName(failure.AssemblyPath), "", "", failure.Message, hash));
+        }
         StatusText.Text = $"插件：已加载 {report.Plugins.Count}，失败 {report.Failures.Count}";
         _log.Information("Loaded {PluginCount} plugins with {FailureCount} failures", report.Plugins.Count, report.Failures.Count);
     }
+
+    private void CopySelectedPluginHash_Click(object sender, RoutedEventArgs e)
+    {
+        if (PluginsGrid.SelectedItem is not PluginDisplay { Hash.Length: > 0 } plugin) return;
+        Clipboard.SetText(plugin.Hash);
+        StatusText.Text = $"已复制 {plugin.Id} 的 SHA-256；审查后写入 trusted-plugins.sha256";
+    }
 }
 
-public sealed record PluginDisplay(string Id, string Name, string Version, string Status);
+public sealed record PluginDisplay(string Id, string Name, string Version, string Status, string Hash);
