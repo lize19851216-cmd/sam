@@ -9,6 +9,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] GitHub Actions
 - [x] SQLite task persistence (`Tasks` table, concurrent-safe connections)
 - [x] Structured Serilog file logging (application enrichment and JSON properties)
+- [x] Task state transition logging with structured task and account properties
 - [x] Task Center execution state machine with retry, timeout and cancellation
 - [x] Plugin contract, load report and duplicate-ID protection
 - [x] Unit tests for task lifecycle, SQLite task storage and plugin registry
@@ -31,4 +32,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 15/15 tests
+- `dotnet test SAM.slnx --no-build` — passed, 16/16 tests
