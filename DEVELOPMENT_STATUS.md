@@ -28,6 +28,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Default-deny trusted-plugin SHA-256 manifest policy
 - [x] Desktop UI hash copy flow for plugin trust review
 - [ ] Plugin process isolation policy for untrusted third-party code
+- [x] Restricted metadata-only IPC contract for a future isolated plugin host
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
