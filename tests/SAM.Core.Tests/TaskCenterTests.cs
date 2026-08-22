@@ -25,6 +25,7 @@ public sealed class TaskCenterTests
         var factory = new SteamClientFactory();
         Assert.IsType<SAM.Core.FakeSteamClient>(factory.Create(SteamClientMode.Fake));
         Assert.Throws<InvalidOperationException>(() => factory.Create(SteamClientMode.SteamKit));
+        Assert.IsType<SAM.Core.FakeSteamClient>(factory.Create(new SteamClientOptions(SteamClientMode.SteamKit)));
     }
     [Fact]
     public async Task Retries_transient_failure_and_persists_terminal_state()
