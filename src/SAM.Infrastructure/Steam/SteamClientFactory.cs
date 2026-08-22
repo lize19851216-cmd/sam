@@ -4,6 +4,12 @@ using SAM.Core.Steam;
 namespace SAM.Infrastructure.Steam;
 public sealed class SteamClientFactory
 {
+    public ISteamClientService Create(SteamClientOptions options, ISteamAuthenticationTransport? transport = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return Create(options.EffectiveMode, transport);
+    }
+
     public ISteamClientService Create(SteamClientMode mode, ISteamAuthenticationTransport? transport = null) => mode switch
     {
         SteamClientMode.Fake => new FakeSteamClient(),
