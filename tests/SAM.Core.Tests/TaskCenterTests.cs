@@ -109,6 +109,28 @@ public sealed class TaskCenterTests
         Assert.Throws<InvalidOperationException>(() => registry.Register(new TestPlugin("sample")));
     }
 
+    [Fact]
+    public void Plugin_runtime_stops_plugins_in_reverse_order_and_only_once()
+    {
+        var lifecycle = new List<string>();
+        var runtime = new PluginRuntime([new LifecyclePlugin("first", lifecycle), new LifecyclePlugin("second", lifecycle)]);
+
+        var report = runtime.Stop();
+        Assert.Equal(["second", "first"], report.StoppedPluginIds);
+        Assert.Equal(["shutdown:second", "dispose:second", "shutdown:first", "dispose:first"], lifecycle);
+        Assert.Empty(runtime.Stop().StoppedPluginIds);
+    }
+
+    [Fact]
+    public void Plugin_runtime_disposes_remaining_resources_after_shutdown_failure()
+    {
+        var lifecycle = new List<string>();
+        var report = new PluginRuntime([new FailingLifecyclePlugin(lifecycle)]).Stop();
+
+        Assert.Single(report.Failures);
+        Assert.Equal(["shutdown", "dispose"], lifecycle);
+    }
+
     private sealed class MemoryTaskStore : ISamTaskStore
     {
         public List<SamTaskRecord> Saved { get; } = [];
@@ -119,6 +141,30 @@ public sealed class TaskCenterTests
     private sealed class TestPlugin(string id) : SAM.Core.Plugins.ISamPlugin
     {
         public string Id => id; public string Name => id; public Version Version => new(1, 0); public void Initialize() { }
+    }
+
+    private sealed class LifecyclePlugin(string id, List<string> lifecycle) : SAM.Core.Plugins.ISamPlugin, IDisposable
+    {
+        public string Id => id;
+        public string Name => id;
+        public Version Version => new(1, 0);
+        public void Initialize() { }
+        public void Shutdown() => lifecycle.Add($"shutdown:{id}");
+        public void Dispose() => lifecycle.Add($"dispose:{id}");
+    }
+
+    private sealed class FailingLifecyclePlugin(List<string> lifecycle) : SAM.Core.Plugins.ISamPlugin, IDisposable
+    {
+        public string Id => "failing";
+        public string Name => Id;
+        public Version Version => new(1, 0);
+        public void Initialize() { }
+        public void Shutdown()
+        {
+            lifecycle.Add("shutdown");
+            throw new InvalidOperationException("shutdown failed");
+        }
+        public void Dispose() => lifecycle.Add("dispose");
     }
     private sealed class StubSteamTransport : ISteamAuthenticationTransport
     {
