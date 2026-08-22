@@ -121,6 +121,13 @@ public partial class MainWindow : Window
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
     {
+        _log.ForContext("TaskId", update.Id)
+            .ForContext("AccountId", update.AccountId)
+            .ForContext("TaskType", update.TaskType)
+            .ForContext("TaskStatus", update.Status)
+            .ForContext("RetryCount", update.RetryCount)
+            .ForContext("TaskMessage", update.Message)
+            .Information("Task state changed");
         if (Dispatcher.HasShutdownStarted) return;
         _ = Dispatcher.BeginInvoke(() => UpsertTask(update));
     }

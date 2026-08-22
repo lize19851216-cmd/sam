@@ -2,6 +2,7 @@ using SAM.Core.Tasks;
 using SAM.Infrastructure.Data;
 using SAM.PluginHost;
 using SAM.Infrastructure.Steam;
+using SAM.Infrastructure.Logging;
 using SAM.Core.Steam;
 using Xunit;
 
@@ -76,6 +77,31 @@ public sealed class TaskCenterTests
 
         Assert.Equal(SamTaskStatus.Succeeded, result.Status);
         Assert.Equal(2, receivedUpdates);
+    }
+
+    [Fact]
+    public void Structured_logger_writes_named_task_properties()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-log-{Guid.NewGuid():N}");
+        var taskId = Guid.NewGuid();
+        try
+        {
+            var logger = SamLog.Create(directory);
+            logger.ForContext("TaskId", taskId)
+                .ForContext("TaskStatus", SamTaskStatus.Running)
+                .Information("Task state changed");
+            (logger as IDisposable)?.Dispose();
+
+            var logFile = Assert.Single(Directory.GetFiles(directory, "sam-*.log"));
+            var content = File.ReadAllText(logFile);
+            Assert.Contains("TaskId", content);
+            Assert.Contains(taskId.ToString(), content);
+            Assert.Contains("TaskStatus", content);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
