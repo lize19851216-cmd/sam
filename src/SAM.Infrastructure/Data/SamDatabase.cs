@@ -3,6 +3,13 @@ using SAM.Core;
 namespace SAM.Infrastructure.Data;
 public sealed class SamDatabase {
     private readonly string _cs;
+    private const string AccountUpsertCommand = """
+        INSERT INTO Accounts(Id,AccountName,SteamId,PersonaName,Status,RetryCount,LastMessage)
+        VALUES($id,$n,$s,$p,$st,$r,$m)
+        ON CONFLICT(Id) DO UPDATE SET
+          AccountName=excluded.AccountName,SteamId=excluded.SteamId,PersonaName=excluded.PersonaName,
+          Status=excluded.Status,RetryCount=excluded.RetryCount,LastMessage=excluded.LastMessage;
+        """;
     public SamDatabase(string databasePath) {
         var directory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
@@ -29,21 +36,31 @@ public sealed class SamDatabase {
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync();
         await using var cmd = c.CreateCommand();
-        cmd.CommandText = """
-        INSERT INTO Accounts(Id,AccountName,SteamId,PersonaName,Status,RetryCount,LastMessage)
-        VALUES($id,$n,$s,$p,$st,$r,$m)
-        ON CONFLICT(Id) DO UPDATE SET
-          AccountName=excluded.AccountName,SteamId=excluded.SteamId,PersonaName=excluded.PersonaName,
-          Status=excluded.Status,RetryCount=excluded.RetryCount,LastMessage=excluded.LastMessage;
-        """;
-        cmd.Parameters.AddWithValue("$id", a.Id.ToString());
-        cmd.Parameters.AddWithValue("$n", a.AccountName);
-        cmd.Parameters.AddWithValue("$s", a.SteamId);
-        cmd.Parameters.AddWithValue("$p", a.PersonaName);
-        cmd.Parameters.AddWithValue("$st", (int)a.Status);
-        cmd.Parameters.AddWithValue("$r", a.RetryCount);
-        cmd.Parameters.AddWithValue("$m", a.LastMessage);
+        cmd.CommandText = AccountUpsertCommand;
+        AddAccountParameters(cmd, a);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>Atomically replaces the persisted simulated-account snapshot.</summary>
+    public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(accounts);
+        var snapshot = accounts.ToArray();
+        await using var c = new SqliteConnection(_cs);
+        await c.OpenAsync(cancellationToken);
+        await using var transaction = (SqliteTransaction)await c.BeginTransactionAsync(cancellationToken);
+        await using (var delete = c.CreateCommand()) {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM Accounts;";
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
+        foreach (var account in snapshot) {
+            await using var insert = c.CreateCommand();
+            insert.Transaction = transaction;
+            insert.CommandText = AccountUpsertCommand;
+            AddAccountParameters(insert, account);
+            await insert.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
     }
     public async Task<IReadOnlyList<Account>> GetAccountsAsync(CancellationToken cancellationToken = default) {
         var accounts = new List<Account>();
@@ -58,5 +75,15 @@ public sealed class SamDatabase {
                 PersonaName = reader.GetString(3), Status = (AccountStatus)reader.GetInt32(4),
                 RetryCount = reader.GetInt32(5), LastMessage = reader.GetString(6) });
         return accounts;
+    }
+
+    private static void AddAccountParameters(SqliteCommand command, Account account) {
+        command.Parameters.AddWithValue("$id", account.Id.ToString());
+        command.Parameters.AddWithValue("$n", account.AccountName);
+        command.Parameters.AddWithValue("$s", account.SteamId);
+        command.Parameters.AddWithValue("$p", account.PersonaName);
+        command.Parameters.AddWithValue("$st", (int)account.Status);
+        command.Parameters.AddWithValue("$r", account.RetryCount);
+        command.Parameters.AddWithValue("$m", account.LastMessage);
     }
 }

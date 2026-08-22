@@ -16,6 +16,7 @@ Milestone 1 — SteamKit adapter preparation
 
 ## Next
 - [x] Persist GUI accounts to SQLite and show persisted task history
+- [x] Atomic replacement of regenerated simulated-account snapshots
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [x] Task Center real-time UI updates for running, retrying and terminal states
 - [x] Task Center observer fault isolation
@@ -32,4 +33,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 16/16 tests
+- `dotnet test SAM.slnx --no-build` — passed, 17/17 tests
