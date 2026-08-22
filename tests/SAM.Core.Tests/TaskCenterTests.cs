@@ -64,6 +64,23 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_round_trips_generated_account()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var account = new SAM.Core.Account { AccountName = "mock_0001", SteamId = "76561190000000001", Status = SAM.Core.AccountStatus.Online };
+            await database.SaveAccountAsync(account);
+            var restored = Assert.Single(await database.GetAccountsAsync());
+            Assert.Equal(account.Id, restored.Id);
+            Assert.Equal(SAM.Core.AccountStatus.Online, restored.Status);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_registry_rejects_duplicate_ids()
     {
         var registry = new PluginRegistry();

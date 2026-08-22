@@ -4,8 +4,9 @@ namespace SAM.Infrastructure.Data;
 public sealed class SamDatabase {
     private readonly string _cs;
     public SamDatabase(string databasePath) {
-        Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
-        _cs = $"Data Source={databasePath}";
+        var directory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
+        if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
+        _cs = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false }.ToString();
     }
     public async Task InitializeAsync() {
         await using var c = new SqliteConnection(_cs);
@@ -43,5 +44,19 @@ public sealed class SamDatabase {
         cmd.Parameters.AddWithValue("$r", a.RetryCount);
         cmd.Parameters.AddWithValue("$m", a.LastMessage);
         await cmd.ExecuteNonQueryAsync();
+    }
+    public async Task<IReadOnlyList<Account>> GetAccountsAsync(CancellationToken cancellationToken = default) {
+        var accounts = new List<Account>();
+        await using var c = new SqliteConnection(_cs);
+        await c.OpenAsync(cancellationToken);
+        await using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT Id,AccountName,SteamId,PersonaName,Status,RetryCount,LastMessage FROM Accounts ORDER BY AccountName;";
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            accounts.Add(new Account {
+                Id = Guid.Parse(reader.GetString(0)), AccountName = reader.GetString(1), SteamId = reader.GetString(2),
+                PersonaName = reader.GetString(3), Status = (AccountStatus)reader.GetInt32(4),
+                RetryCount = reader.GetInt32(5), LastMessage = reader.GetString(6) });
+        return accounts;
     }
 }
