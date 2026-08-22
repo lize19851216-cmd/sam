@@ -2,9 +2,11 @@
 using System.Windows;
 using System.IO;
 using SAM.Core;
+using SAM.Core.Steam;
 using SAM.Core.Tasks;
 using SAM.Infrastructure.Data;
 using SAM.Infrastructure.Logging;
+using SAM.Infrastructure.Steam;
 using SAM.PluginHost;
 using Serilog;
 
@@ -16,7 +18,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<SamTaskRecord> _tasks = [];
     private readonly ObservableCollection<PluginDisplay> _plugins = [];
     private readonly PluginLoader _pluginLoader = new();
-    private readonly WorkerPool _pool = new(new FakeSteamClient());
+    private readonly SteamClientOptions _steamClientOptions = new();
+    private readonly WorkerPool _pool;
     private readonly SamDatabase _database;
     private readonly SqliteTaskStore _taskStore;
     private readonly SamTaskCenter _taskCenter;
@@ -26,6 +29,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _pool = new WorkerPool(new SteamClientFactory().Create(_steamClientOptions));
         var appDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SAM");
         _database = new SamDatabase(Path.Combine(appDirectory, "sam.db"));
         _taskStore = new SqliteTaskStore(Path.Combine(appDirectory, "sam.db"));
@@ -46,8 +50,9 @@ public partial class MainWindow : Window
             await _taskStore.InitializeAsync();
             foreach (var account in await _database.GetAccountsAsync()) _accounts.Add(account);
             await RefreshTasksAsync();
-            StatusText.Text = $"就绪：已加载 {_accounts.Count} 个模拟账号";
-            _log.Information("SAM desktop initialized with {AccountCount} accounts", _accounts.Count);
+            var clientMode = _steamClientOptions.EffectiveMode == SteamClientMode.Fake ? "模拟客户端" : "SteamKit 客户端";
+            StatusText.Text = $"就绪：{clientMode}，已加载 {_accounts.Count} 个模拟账号";
+            _log.Information("SAM desktop initialized with {AccountCount} accounts using {SteamClientMode}", _accounts.Count, _steamClientOptions.EffectiveMode);
         }
         catch (Exception exception)
         {

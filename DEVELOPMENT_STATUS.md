@@ -20,9 +20,11 @@ Milestone 1 — SteamKit adapter preparation
 - [ ] Plugin unload/isolation policy
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
-- [ ] M1 SteamKit transport implementation and explicit opt-in configuration
+- [x] M1 safe client selection and explicit opt-in configuration
+- [x] Desktop startup uses the safe client factory and remains in Fake mode by default
+- [ ] M1 SteamKit transport implementation (without storing credentials in SAM)
 
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 9/9 tests
+- `dotnet test SAM.slnx --no-build` — passed, 11/11 tests
