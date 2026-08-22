@@ -235,6 +235,13 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_isolation_request_requires_a_sha256_hash()
+    {
+        new PluginIsolationRequest("plugin.dll", new string('A', 64)).Validate();
+        Assert.Throws<ArgumentException>(() => new PluginIsolationRequest("plugin.dll", "invalid").Validate());
+    }
+
+    [Fact]
     public void Plugin_runtime_stops_plugins_in_reverse_order_and_only_once()
     {
         var lifecycle = new List<string>();
