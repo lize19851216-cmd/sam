@@ -1,0 +1,31 @@
+﻿<Window x:Class="SAM.Desktop.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="SAM - Steam Account Manager M0" Height="720" Width="1180"
+ WindowStartupLocation="CenterScreen">
+ <DockPanel Margin="12">
+   <Border DockPanel.Dock="Top" Padding="12" Margin="0,0,0,10" BorderThickness="1" BorderBrush="Gray">
+     <StackPanel Orientation="Horizontal">
+       <TextBlock Text="SAM Milestone 0" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+       <TextBlock Text="   模拟环境" VerticalAlignment="Center"/>
+       <TextBlock Text="   并发:" VerticalAlignment="Center" Margin="30,0,4,0"/>
+       <TextBox x:Name="ConcurrencyBox" Text="10" Width="55" Padding="5"/>
+       <Button Content="生成100账号" Click="Generate100_Click" Margin="20,0,5,0" Padding="12,5"/>
+       <Button Content="生成500账号" Click="Generate500_Click" Margin="5,0" Padding="12,5"/>
+       <Button Content="批量模拟登录" Click="Login_Click" Margin="5,0" Padding="12,5"/>
+     </StackPanel>
+   </Border>
+   <StatusBar DockPanel.Dock="Bottom">
+     <TextBlock x:Name="StatusText" Text="就绪"/>
+   </StatusBar>
+   <DataGrid x:Name="AccountsGrid" AutoGenerateColumns="False" IsReadOnly="True">
+     <DataGrid.Columns>
+       <DataGridTextColumn Header="账号" Binding="{Binding AccountName}" Width="2*"/>
+       <DataGridTextColumn Header="SteamID" Binding="{Binding SteamId}" Width="2*"/>
+       <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="*"/>
+       <DataGridTextColumn Header="重试" Binding="{Binding RetryCount}" Width="70"/>
+       <DataGridTextColumn Header="信息" Binding="{Binding LastMessage}" Width="3*"/>
+     </DataGrid.Columns>
+   </DataGrid>
+ </DockPanel>
+</Window>

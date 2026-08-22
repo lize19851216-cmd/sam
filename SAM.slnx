@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/SAM.Core/SAM.Core.csproj" />
+  <Project Path="src/SAM.Infrastructure/SAM.Infrastructure.csproj" />
+  <Project Path="src/SAM.Desktop/SAM.Desktop.csproj" />
+  <Project Path="tests/SAM.Core.Tests/SAM.Core.Tests.csproj" />
+</Solution>
