@@ -1,0 +1,16 @@
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\bin\Release\net10.0\SAM.PluginHost.deps.json
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\bin\Release\net10.0\SAM.PluginHost.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\bin\Release\net10.0\SAM.PluginHost.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\bin\Release\net10.0\SAM.Core.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\bin\Release\net10.0\SAM.Core.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.csproj.AssemblyReference.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.AssemblyInfoInputs.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.AssemblyInfo.cs
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.sourcelink.json
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.Plug.6ED5966A.Up2Date
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\refint\SAM.PluginHost.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\SAM.PluginHost.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.PluginHost\obj\Release\net10.0\ref\SAM.PluginHost.dll

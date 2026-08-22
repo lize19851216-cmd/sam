@@ -1,0 +1,16 @@
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\bin\Release\net10.0\SAM.Infrastructure.deps.json
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\bin\Release\net10.0\SAM.Infrastructure.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\bin\Release\net10.0\SAM.Infrastructure.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\bin\Release\net10.0\SAM.Core.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\bin\Release\net10.0\SAM.Core.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.AssemblyInfo.cs
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.sourcelink.json
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infr.6D9D0F55.Up2Date
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\refint\SAM.Infrastructure.dll
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\SAM.Infrastructure.pdb
+C:\Users\Administrator\Desktop\SAM-M0\src\SAM.Infrastructure\obj\Release\net10.0\ref\SAM.Infrastructure.dll
