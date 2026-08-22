@@ -1,4 +1,5 @@
-﻿using SAM.Core;
+﻿using Xunit;
+using SAM.Core;
 namespace SAM.Core.Tests;
 
 public sealed class WorkerPoolTests
@@ -13,3 +14,4 @@ public sealed class WorkerPoolTests
         Assert.DoesNotContain(accounts, a => a.Status is AccountStatus.Imported or AccountStatus.Connecting);
     }
 }
+
