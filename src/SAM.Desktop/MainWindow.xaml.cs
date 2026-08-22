@@ -5,6 +5,7 @@ using SAM.Core;
 using SAM.Core.Tasks;
 using SAM.Infrastructure.Data;
 using SAM.Infrastructure.Logging;
+using SAM.PluginHost;
 using Serilog;
 
 namespace SAM.Desktop;
@@ -13,6 +14,8 @@ public partial class MainWindow : Window
 {
     private readonly ObservableCollection<Account> _accounts = [];
     private readonly ObservableCollection<SamTaskRecord> _tasks = [];
+    private readonly ObservableCollection<PluginDisplay> _plugins = [];
+    private readonly PluginLoader _pluginLoader = new();
     private readonly WorkerPool _pool = new(new FakeSteamClient());
     private readonly SamDatabase _database;
     private readonly SqliteTaskStore _taskStore;
@@ -30,6 +33,7 @@ public partial class MainWindow : Window
         _log = SamLog.Create(Path.Combine(appDirectory, "logs"));
         AccountsGrid.ItemsSource = _accounts;
         TasksGrid.ItemsSource = _tasks;
+        PluginsGrid.ItemsSource = _plugins;
         Loaded += MainWindow_Loaded;
         Closed += (_, _) => { _loginCancellation?.Cancel(); (_log as IDisposable)?.Dispose(); };
     }
@@ -99,4 +103,17 @@ public partial class MainWindow : Window
         _tasks.Clear();
         foreach (var task in await _taskStore.GetRecentAsync(200)) _tasks.Add(task);
     }
+
+    private void LoadPlugins_Click(object sender, RoutedEventArgs e)
+    {
+        var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SAM", "plugins");
+        var report = _pluginLoader.LoadWithReport(directory);
+        _plugins.Clear();
+        foreach (var plugin in report.Plugins) _plugins.Add(new(plugin.Id, plugin.Name, plugin.Version.ToString(), "Loaded"));
+        foreach (var failure in report.Failures) _plugins.Add(new(Path.GetFileName(failure.AssemblyPath), "", "", failure.Message));
+        StatusText.Text = $"插件：已加载 {report.Plugins.Count}，失败 {report.Failures.Count}";
+        _log.Information("Loaded {PluginCount} plugins with {FailureCount} failures", report.Plugins.Count, report.Failures.Count);
+    }
 }
+
+public sealed record PluginDisplay(string Id, string Name, string Version, string Status);
