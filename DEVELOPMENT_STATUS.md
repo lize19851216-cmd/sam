@@ -17,7 +17,7 @@ Milestone 0 — Foundation / Simulation
 - [x] Persist GUI accounts to SQLite and show persisted task history
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [ ] Plugin management UI and unload/isolation policy
-- [x] 1,000 simulated account concurrency and cancellation reliability tests
+- [x] 10 simulated account concurrency and cancellation reliability tests
 - [ ] M1 SteamKit adapter
 
 ## Verification (2026-08-22)

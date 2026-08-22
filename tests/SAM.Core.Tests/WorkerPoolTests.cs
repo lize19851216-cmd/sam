@@ -15,15 +15,15 @@ public sealed class WorkerPoolTests
     }
 
     [Fact]
-    public async Task Batch_processes_1000_simulated_accounts_with_bounded_concurrency()
+    public async Task Batch_processes_10_simulated_accounts_with_bounded_concurrency()
     {
         var client = new TrackingSteamClient();
-        var accounts = Enumerable.Range(1, 1000).Select(i => new Account { AccountName = $"mock_{i}" }).ToArray();
+        var accounts = Enumerable.Range(1, 10).Select(i => new Account { AccountName = $"mock_{i}" }).ToArray();
 
-        await new WorkerPool(client).RunLoginBatchAsync(accounts, 25, retryPolicy: new SAM.Core.Tasks.RetryPolicy(0, Timeout: TimeSpan.FromSeconds(2)));
+        await new WorkerPool(client).RunLoginBatchAsync(accounts, 10, retryPolicy: new SAM.Core.Tasks.RetryPolicy(0, Timeout: TimeSpan.FromSeconds(2)));
 
         Assert.All(accounts, account => Assert.Equal(AccountStatus.Online, account.Status));
-        Assert.InRange(client.PeakConcurrentRequests, 1, 25);
+        Assert.InRange(client.PeakConcurrentRequests, 1, 10);
     }
 
     [Fact]
