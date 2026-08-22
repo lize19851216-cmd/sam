@@ -21,6 +21,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
 - [ ] Plugin process isolation policy for untrusted third-party code
 - [x] 10 simulated account concurrency and cancellation reliability tests
+- [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
 - [x] M1 safe client selection and explicit opt-in configuration
 - [x] Desktop startup uses the safe client factory and remains in Fake mode by default

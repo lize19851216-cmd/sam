@@ -6,14 +6,18 @@ namespace SAM.Core;
 
 public sealed class WorkerPool
 {
+    public const int MaximumConcurrency = 10;
+
     private readonly ISteamClientService _steam;
     public WorkerPool(ISteamClientService steam) => _steam = steam;
+
+    public static int NormalizeConcurrency(int requestedConcurrency) => Math.Clamp(requestedConcurrency, 1, MaximumConcurrency);
 
     public async Task RunLoginBatchAsync(
         IEnumerable<Account> accounts, int concurrency, Action<Account>? changed = null,
         CancellationToken cancellationToken = default, RetryPolicy? retryPolicy = null, SamTaskCenter? taskCenter = null)
     {
-        concurrency = Math.Clamp(concurrency, 1, 200);
+        concurrency = NormalizeConcurrency(concurrency);
         using var gate = new SemaphoreSlim(concurrency);
         var center = taskCenter ?? new SamTaskCenter();
         var tasks = accounts.Select(async account =>
