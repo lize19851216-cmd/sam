@@ -161,6 +161,29 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_replaces_previous_simulated_account_snapshot()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            await database.ReplaceAccountsAsync([
+                new SAM.Core.Account { AccountName = "old_0001" },
+                new SAM.Core.Account { AccountName = "old_0002" }
+            ]);
+
+            var current = new SAM.Core.Account { AccountName = "mock_0001", SteamId = "76561190000000001" };
+            await database.ReplaceAccountsAsync([current]);
+
+            var restored = Assert.Single(await database.GetAccountsAsync());
+            Assert.Equal(current.Id, restored.Id);
+            Assert.Equal("mock_0001", restored.AccountName);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_registry_rejects_duplicate_ids()
     {
         var registry = new PluginRegistry();

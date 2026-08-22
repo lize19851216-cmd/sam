@@ -77,7 +77,7 @@ public partial class MainWindow : Window
                 AccountName = $"mock_{i:0000}",
                 SteamId = $"7656119{Random.Shared.NextInt64(10000000000, 99999999999)}"
             });
-        await Task.WhenAll(_accounts.Select(_database.SaveAccountAsync));
+        await _database.ReplaceAccountsAsync(_accounts);
         _log.Information("Generated and persisted {AccountCount} fake accounts", count);
         StatusText.Text = $"已生成 {count} 个模拟账号";
     }
