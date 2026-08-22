@@ -46,6 +46,25 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Task_center_publishes_immutable_state_updates()
+    {
+        var center = new SamTaskCenter();
+        var updates = new List<SamTaskUpdate>();
+        center.TaskChanged += (_, update) => updates.Add(update);
+        var attempts = 0;
+
+        await center.ExecuteAsync(new SamTaskRecord { TaskType = "Test" }, _ =>
+        {
+            attempts++;
+            return Task.FromResult(attempts == 1 ? SamTaskOutcome.Failed("temporary", true) : SamTaskOutcome.Succeeded("done"));
+        }, new RetryPolicy(1, TimeSpan.Zero, TimeSpan.FromSeconds(1)));
+
+        Assert.Equal([SamTaskStatus.Running, SamTaskStatus.RetryWaiting, SamTaskStatus.Running, SamTaskStatus.Succeeded], updates.Select(update => update.Status));
+        Assert.Equal("temporary", updates[1].Message);
+        Assert.Equal("done", updates[^1].Message);
+    }
+
+    [Fact]
     public async Task Cancellation_is_a_terminal_task_state()
     {
         using var cancellation = new CancellationTokenSource();

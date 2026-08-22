@@ -11,6 +11,9 @@ public sealed class SamTaskCenter
     private readonly ISamTaskStore? _store;
     public SamTaskCenter(ISamTaskStore? store = null) => _store = store;
 
+    /// <summary>Raised after a task state is persisted, with an immutable UI-safe snapshot.</summary>
+    public event EventHandler<SamTaskUpdate>? TaskChanged;
+
     public async Task<SamTaskRecord> ExecuteAsync(SamTaskRecord task, Func<CancellationToken, Task<SamTaskOutcome>> operation, RetryPolicy? policy = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(task);
@@ -62,9 +65,41 @@ public sealed class SamTaskCenter
     {
         task.Status = status; task.Message = message; task.UpdatedAt = DateTimeOffset.UtcNow;
         if (_store is not null) await _store.SaveAsync(task, cancellationToken);
+        TaskChanged?.Invoke(this, SamTaskUpdate.From(task));
     }
     private async Task FinishAsync(SamTaskRecord task, SamTaskStatus status, string message, CancellationToken cancellationToken)
     {
         task.CompletedAt = DateTimeOffset.UtcNow; await SetStateAsync(task, status, message, cancellationToken);
     }
+}
+
+public sealed record SamTaskUpdate(
+    Guid Id,
+    Guid AccountId,
+    string TaskType,
+    SamTaskStatus Status,
+    int RetryCount,
+    string Message,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? CompletedAt,
+    DateTimeOffset UpdatedAt)
+{
+    public static SamTaskUpdate From(SamTaskRecord task) => new(
+        task.Id, task.AccountId, task.TaskType, task.Status, task.RetryCount, task.Message,
+        task.CreatedAt, task.StartedAt, task.CompletedAt, task.UpdatedAt);
+
+    public SamTaskRecord ToRecord() => new()
+    {
+        Id = Id,
+        AccountId = AccountId,
+        TaskType = TaskType,
+        Status = Status,
+        RetryCount = RetryCount,
+        Message = Message,
+        CreatedAt = CreatedAt,
+        StartedAt = StartedAt,
+        CompletedAt = CompletedAt,
+        UpdatedAt = UpdatedAt
+    };
 }
