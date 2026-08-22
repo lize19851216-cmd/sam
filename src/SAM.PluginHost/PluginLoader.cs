@@ -14,8 +14,13 @@ public sealed class PluginLoader {
         if (!Directory.Exists(directory)) return new([], []);
         var registry = new PluginRegistry();
         var failures = new List<PluginLoadFailure>();
-        foreach (var file in Directory.EnumerateFiles(directory,"*.dll")) {
+        var trustPolicy = PluginTrustPolicy.FromManifest(directory);
+        foreach (var file in Directory.EnumerateFiles(directory,"*.dll").OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
             try {
+                if (!trustPolicy.IsTrusted(file)) {
+                    failures.Add(new(file, $"Assembly hash is not listed in {PluginTrustPolicy.ManifestFileName}."));
+                    continue;
+                }
                 var asm = Assembly.LoadFrom(file);
                 foreach (var t in asm.GetTypes()) {
                     if (t.IsAbstract || !typeof(ISamPlugin).IsAssignableFrom(t)) continue;

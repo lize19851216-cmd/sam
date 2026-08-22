@@ -192,6 +192,26 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_trust_policy_is_default_deny_and_accepts_manifest_hash()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var assemblyPath = Path.Combine(directory, "sample.dll");
+        try
+        {
+            File.WriteAllText(assemblyPath, "plugin payload");
+            Assert.False(PluginTrustPolicy.FromManifest(directory).IsTrusted(assemblyPath));
+
+            File.WriteAllText(Path.Combine(directory, PluginTrustPolicy.ManifestFileName), PluginTrustPolicy.CalculateHash(assemblyPath));
+            Assert.True(PluginTrustPolicy.FromManifest(directory).IsTrusted(assemblyPath));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Plugin_runtime_stops_plugins_in_reverse_order_and_only_once()
     {
         var lifecycle = new List<string>();
