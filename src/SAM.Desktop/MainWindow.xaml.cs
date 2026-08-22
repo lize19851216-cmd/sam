@@ -87,7 +87,9 @@ public partial class MainWindow : Window
 
     private async void Login_Click(object sender, RoutedEventArgs e)
     {
-        if (!int.TryParse(ConcurrencyBox.Text, out var concurrency)) concurrency = 10;
+        if (!int.TryParse(ConcurrencyBox.Text, out var concurrency)) concurrency = WorkerPool.MaximumConcurrency;
+        concurrency = WorkerPool.NormalizeConcurrency(concurrency);
+        ConcurrencyBox.Text = concurrency.ToString();
         if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号"; return; }
         _loginCancellation = new CancellationTokenSource();
         CancelButton.IsEnabled = true;

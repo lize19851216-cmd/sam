@@ -15,15 +15,15 @@ public sealed class WorkerPoolTests
     }
 
     [Fact]
-    public async Task Batch_processes_10_simulated_accounts_with_bounded_concurrency()
+    public async Task Batch_caps_requested_concurrency_at_10()
     {
         var client = new TrackingSteamClient();
-        var accounts = Enumerable.Range(1, 10).Select(i => new Account { AccountName = $"mock_{i}" }).ToArray();
+        var accounts = Enumerable.Range(1, 20).Select(i => new Account { AccountName = $"mock_{i}" }).ToArray();
 
-        await new WorkerPool(client).RunLoginBatchAsync(accounts, 10, retryPolicy: new SAM.Core.Tasks.RetryPolicy(0, Timeout: TimeSpan.FromSeconds(2)));
+        await new WorkerPool(client).RunLoginBatchAsync(accounts, 1_000, retryPolicy: new SAM.Core.Tasks.RetryPolicy(0, Timeout: TimeSpan.FromSeconds(2)));
 
         Assert.All(accounts, account => Assert.Equal(AccountStatus.Online, account.Status));
-        Assert.InRange(client.PeakConcurrentRequests, 1, 10);
+        Assert.Equal(WorkerPool.MaximumConcurrency, client.PeakConcurrentRequests);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class WorkerPoolTests
                 var observed = _peak;
                 if (observed >= active || Interlocked.CompareExchange(ref _peak, active, observed) == observed) break;
             }
-            try { await Task.Delay(2, cancellationToken); return new(AccountStatus.Online, "success"); }
+            try { await Task.Delay(100, cancellationToken); return new(AccountStatus.Online, "success"); }
             finally { Interlocked.Decrement(ref _active); }
         }
     }
