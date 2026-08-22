@@ -1,5 +1,6 @@
 ﻿using Xunit;
 using SAM.Core;
+using SAM.Core.Tasks;
 namespace SAM.Core.Tests;
 
 public sealed class WorkerPoolTests
@@ -31,10 +32,12 @@ public sealed class WorkerPoolTests
     {
         var accounts = Enumerable.Range(1, 100).Select(i => new Account { AccountName = $"mock_{i}" }).ToArray();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(30));
+        var store = new MemoryTaskStore();
 
-        await new WorkerPool(new BlockingSteamClient()).RunLoginBatchAsync(accounts, 1, cancellationToken: cancellation.Token);
+        await new WorkerPool(new BlockingSteamClient()).RunLoginBatchAsync(accounts, 1, cancellationToken: cancellation.Token, taskCenter: new SamTaskCenter(store));
 
         Assert.All(accounts, account => Assert.Equal(AccountStatus.Cancelled, account.Status));
+        Assert.Equal(accounts.Length, store.Saved.Where(task => task.Status == SamTaskStatus.Cancelled).Select(task => task.Id).Distinct().Count());
     }
 
     private sealed class TrackingSteamClient : ISteamClientService
@@ -62,6 +65,17 @@ public sealed class WorkerPoolTests
             await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
             return new(AccountStatus.Online, "success");
         }
+    }
+
+    private sealed class MemoryTaskStore : ISamTaskStore
+    {
+        public System.Collections.Concurrent.ConcurrentBag<SamTaskRecord> Saved { get; } = [];
+        public Task SaveAsync(SamTaskRecord task, CancellationToken cancellationToken = default)
+        {
+            Saved.Add(new SamTaskRecord { Id = task.Id, Status = task.Status });
+            return Task.CompletedTask;
+        }
+        public Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<SamTaskRecord>>([]);
     }
 }
 

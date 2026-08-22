@@ -20,6 +20,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [x] Task Center real-time UI updates for running, retrying and terminal states
 - [x] Task Center observer fault isolation
+- [x] Cancellation persistence for queued as well as active login tasks
 - [x] Plugin management UI (local plugin discovery and load report)
 - [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
 - [x] Default-deny trusted-plugin SHA-256 manifest policy

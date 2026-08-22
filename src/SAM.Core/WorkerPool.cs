@@ -23,6 +23,7 @@ public sealed class WorkerPool
         var tasks = accounts.Select(async account =>
         {
             var entered = false;
+            var record = new SamTaskRecord { AccountId = account.Id, TaskType = "Login" };
             try
             {
                 await gate.WaitAsync(cancellationToken);
@@ -31,7 +32,6 @@ public sealed class WorkerPool
                 account.LastMessage = "Worker 已领取任务";
                 changed?.Invoke(account);
                 LoginResult? loginResult = null;
-                var record = new SamTaskRecord { AccountId = account.Id, TaskType = "Login" };
                 var completed = await center.ExecuteAsync(record, async token =>
                 {
                     loginResult = await _steam.LoginAsync(account, token);
@@ -47,6 +47,7 @@ public sealed class WorkerPool
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                await center.CancelAsync(record);
                 account.Status = AccountStatus.Cancelled;
                 account.LastMessage = "Cancelled";
                 changed?.Invoke(account);
