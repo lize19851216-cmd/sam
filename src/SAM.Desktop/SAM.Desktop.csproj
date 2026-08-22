@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../SAM.Core/SAM.Core.csproj" />
     <ProjectReference Include="../SAM.Infrastructure/SAM.Infrastructure.csproj" />
+    <ProjectReference Include="../SAM.PluginHost/SAM.PluginHost.csproj" />
     <PackageReference Include="Serilog" Version="4.3.0" />
   </ItemGroup>
 </Project>
