@@ -46,14 +46,18 @@
      </DockPanel>
     </GroupBox>
     <GroupBox Grid.Row="2" Header="Plugins" Margin="0,10,0,0">
+     <DockPanel>
+     <Button DockPanel.Dock="Bottom" Content="复制选中插件哈希" Click="CopySelectedPluginHash_Click" Padding="10,4" Margin="0,6,0,0"/>
      <DataGrid x:Name="PluginsGrid" AutoGenerateColumns="False" IsReadOnly="True">
       <DataGrid.Columns>
        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="2*"/>
        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="2*"/>
        <DataGridTextColumn Header="版本" Binding="{Binding Version}" Width="*"/>
        <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="3*"/>
+       <DataGridTextColumn Header="SHA-256" Binding="{Binding Hash}" Width="3*"/>
       </DataGrid.Columns>
      </DataGrid>
+     </DockPanel>
     </GroupBox>
    </Grid>
  </DockPanel>

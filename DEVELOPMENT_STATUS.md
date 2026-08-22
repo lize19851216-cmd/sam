@@ -26,6 +26,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Plugin management UI (local plugin discovery and load report)
 - [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
 - [x] Default-deny trusted-plugin SHA-256 manifest policy
+- [x] Desktop UI hash copy flow for plugin trust review
 - [ ] Plugin process isolation policy for untrusted third-party code
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
