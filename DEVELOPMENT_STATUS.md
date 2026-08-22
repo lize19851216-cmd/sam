@@ -1,6 +1,6 @@
 ﻿# SAM Development Status
 ## Current phase
-Milestone 0 — Foundation / Simulation
+Milestone 1 — SteamKit adapter preparation
 
 ## Completed
 - [x] .NET 10 / WPF
@@ -19,7 +19,8 @@ Milestone 0 — Foundation / Simulation
 - [x] Plugin management UI (local plugin discovery and load report)
 - [ ] Plugin unload/isolation policy
 - [x] 10 simulated account concurrency and cancellation reliability tests
-- [ ] M1 SteamKit adapter
+- [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
+- [ ] M1 SteamKit transport implementation and explicit opt-in configuration
 
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
