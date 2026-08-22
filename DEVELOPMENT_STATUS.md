@@ -17,10 +17,10 @@ Milestone 0 — Foundation / Simulation
 - [x] Persist GUI accounts to SQLite and show persisted task history
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [ ] Plugin management UI and unload/isolation policy
-- [ ] 500/1000 simulated account stress test
+- [x] 1,000 simulated account concurrency and cancellation reliability tests
 - [ ] M1 SteamKit adapter
 
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 7/7 tests
+- `dotnet test SAM.slnx --no-build` — passed, 9/9 tests
