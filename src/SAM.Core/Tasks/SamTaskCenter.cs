@@ -11,7 +11,7 @@ public sealed class SamTaskCenter
     private readonly ISamTaskStore? _store;
     public SamTaskCenter(ISamTaskStore? store = null) => _store = store;
 
-    /// <summary>Raised after a task state is persisted, with an immutable UI-safe snapshot.</summary>
+    /// <summary>Raised after a task state is persisted, with an immutable UI-safe snapshot. Handler failures are isolated from task execution.</summary>
     public event EventHandler<SamTaskUpdate>? TaskChanged;
 
     public async Task<SamTaskRecord> ExecuteAsync(SamTaskRecord task, Func<CancellationToken, Task<SamTaskOutcome>> operation, RetryPolicy? policy = null, CancellationToken cancellationToken = default)
@@ -65,11 +65,21 @@ public sealed class SamTaskCenter
     {
         task.Status = status; task.Message = message; task.UpdatedAt = DateTimeOffset.UtcNow;
         if (_store is not null) await _store.SaveAsync(task, cancellationToken);
-        TaskChanged?.Invoke(this, SamTaskUpdate.From(task));
+        PublishTaskChanged(SamTaskUpdate.From(task));
     }
     private async Task FinishAsync(SamTaskRecord task, SamTaskStatus status, string message, CancellationToken cancellationToken)
     {
         task.CompletedAt = DateTimeOffset.UtcNow; await SetStateAsync(task, status, message, cancellationToken);
+    }
+
+    private void PublishTaskChanged(SamTaskUpdate update)
+    {
+        var handlers = TaskChanged?.GetInvocationList().Cast<EventHandler<SamTaskUpdate>>() ?? [];
+        foreach (var handler in handlers)
+        {
+            try { handler(this, update); }
+            catch { /* Observers must not interfere with task execution. */ }
+        }
     }
 }
 

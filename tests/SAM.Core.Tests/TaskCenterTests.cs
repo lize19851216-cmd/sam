@@ -65,6 +65,20 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Task_center_isolates_failing_state_observers()
+    {
+        var center = new SamTaskCenter();
+        var receivedUpdates = 0;
+        center.TaskChanged += (_, _) => throw new InvalidOperationException("observer failed");
+        center.TaskChanged += (_, _) => receivedUpdates++;
+
+        var result = await center.ExecuteAsync(new SamTaskRecord { TaskType = "Test" }, _ => Task.FromResult(SamTaskOutcome.Succeeded("done")));
+
+        Assert.Equal(SamTaskStatus.Succeeded, result.Status);
+        Assert.Equal(2, receivedUpdates);
+    }
+
+    [Fact]
     public async Task Cancellation_is_a_terminal_task_state()
     {
         using var cancellation = new CancellationTokenSource();
