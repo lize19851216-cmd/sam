@@ -7,15 +7,20 @@ Milestone 0 — Foundation / Simulation
 - [x] FakeSteamClient
 - [x] Worker Pool
 - [x] GitHub Actions
-- [x] SQLite foundation
-- [x] Structured logging foundation
-- [x] Retry/timeout model
-- [x] Plugin contract and host skeleton
+- [x] SQLite task persistence (`Tasks` table, concurrent-safe connections)
+- [x] Structured Serilog file logging (application enrichment and JSON properties)
+- [x] Task Center execution state machine with retry, timeout and cancellation
+- [x] Plugin contract, load report and duplicate-ID protection
+- [x] Unit tests for task lifecycle, SQLite task storage and plugin registry
 
 ## Next
-- [ ] Persist GUI accounts to SQLite
-- [ ] Task Center UI
-- [ ] Retry execution
-- [ ] Plugin management UI
+- [ ] Persist GUI accounts to SQLite and show persisted task history
+- [ ] Task Center UI (queue, cancel and task history)
+- [ ] Plugin management UI and unload/isolation policy
 - [ ] 500/1000 simulated account stress test
 - [ ] M1 SteamKit adapter
+
+## Verification (2026-08-22)
+- `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
+- `dotnet build SAM.slnx --no-restore` — passed, 0 errors
+- `dotnet test SAM.slnx --no-build` — passed, 6/6 tests

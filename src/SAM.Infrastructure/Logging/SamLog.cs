@@ -5,7 +5,11 @@ public static class SamLog {
         Directory.CreateDirectory(dir);
         return new LoggerConfiguration()
           .MinimumLevel.Information()
-          .WriteTo.File(Path.Combine(dir,"sam-.log"),rollingInterval:RollingInterval.Day,retainedFileCountLimit:14)
+          .Enrich.FromLogContext()
+          .Enrich.WithProperty("Application", "SAM")
+          .WriteTo.File(Path.Combine(dir,"sam-.log"), rollingInterval: RollingInterval.Day,
+              retainedFileCountLimit: 14,
+              outputTemplate: "{Timestamp:O} [{Level:u3}] {SourceContext} {Message:lj} {Properties:j}{NewLine}{Exception}")
           .CreateLogger();
     }
 }
