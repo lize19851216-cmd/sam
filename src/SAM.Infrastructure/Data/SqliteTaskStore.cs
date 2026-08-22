@@ -57,13 +57,20 @@ public sealed class SqliteTaskStore : ISamTaskStore
 
     public async Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default)
     {
+        return await GetPageAsync(0, limit, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SamTaskRecord>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
         if (limit <= 0) return [];
         var tasks = new List<SamTaskRecord>();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Id,AccountId,TaskType,Status,RetryCount,Message,CreatedAt,StartedAt,CompletedAt,UpdatedAt FROM Tasks ORDER BY UpdatedAt DESC LIMIT $limit;";
+        command.CommandText = "SELECT Id,AccountId,TaskType,Status,RetryCount,Message,CreatedAt,StartedAt,CompletedAt,UpdatedAt FROM Tasks ORDER BY UpdatedAt DESC, Id DESC LIMIT $limit OFFSET $offset;";
         command.Parameters.AddWithValue("$limit", limit);
+        command.Parameters.AddWithValue("$offset", offset);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
             tasks.Add(new SamTaskRecord {
