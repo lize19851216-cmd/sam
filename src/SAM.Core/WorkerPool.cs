@@ -18,9 +18,11 @@ public sealed class WorkerPool
         var center = taskCenter ?? new SamTaskCenter();
         var tasks = accounts.Select(async account =>
         {
-            await gate.WaitAsync(cancellationToken);
+            var entered = false;
             try
             {
+                await gate.WaitAsync(cancellationToken);
+                entered = true;
                 account.Status = AccountStatus.Connecting;
                 account.LastMessage = "Worker 已领取任务";
                 changed?.Invoke(account);
@@ -39,7 +41,13 @@ public sealed class WorkerPool
                 account.LastMessage = completed.Message;
                 changed?.Invoke(account);
             }
-            finally { gate.Release(); }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                account.Status = AccountStatus.Cancelled;
+                account.LastMessage = "Cancelled";
+                changed?.Invoke(account);
+            }
+            finally { if (entered) gate.Release(); }
         });
         await Task.WhenAll(tasks);
     }
