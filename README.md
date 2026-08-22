@@ -17,4 +17,10 @@ PowerShell:
 - 成功/Steam Guard/限流/失败状态模拟
 - xUnit 基础测试
 
-下一轮：SQLite 持久化、结构化日志、重试策略、任务中心、插件 Host。
+## M0 第二阶段基础架构
+- SQLite 账号基础表及 Task Center 持久化存储
+- Serilog 文件日志（含应用属性与结构化属性输出）
+- 任务状态、指数退避 Retry、每次执行 Timeout 与协作式 Cancellation
+- `SAM.PluginHost` 插件发现报告与唯一 ID 注册表
+
+仍仅使用 `FakeSteamClient`；不处理或存储真实 Steam 凭据、Cookie 或 Steam Guard Secret。

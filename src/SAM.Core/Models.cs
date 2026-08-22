@@ -3,7 +3,7 @@
 public enum AccountStatus
 {
     Imported, Queued, Connecting, Authenticating, Online,
-    RequiresSteamGuard, RateLimited, RetryWaiting, Failed, Disabled
+    RequiresSteamGuard, RateLimited, RetryWaiting, Failed, Cancelled, Disabled
 }
 
 public sealed class Account
