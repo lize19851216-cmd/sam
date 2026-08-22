@@ -39,7 +39,14 @@ public partial class MainWindow : Window
         TasksGrid.ItemsSource = _tasks;
         PluginsGrid.ItemsSource = _plugins;
         Loaded += MainWindow_Loaded;
-        Closed += (_, _) => { _loginCancellation?.Cancel(); (_log as IDisposable)?.Dispose(); };
+        Closed += (_, _) =>
+        {
+            _loginCancellation?.Cancel();
+            var unloadReport = _pluginLoader.Unload();
+            if (unloadReport.Failures.Count > 0)
+                _log.Warning("Failed to unload {FailureCount} plugins during shutdown", unloadReport.Failures.Count);
+            (_log as IDisposable)?.Dispose();
+        };
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -112,6 +119,9 @@ public partial class MainWindow : Window
     private void LoadPlugins_Click(object sender, RoutedEventArgs e)
     {
         var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SAM", "plugins");
+        var unloadReport = _pluginLoader.Unload();
+        if (unloadReport.Failures.Count > 0)
+            _log.Warning("Failed to unload {FailureCount} plugins before reloading", unloadReport.Failures.Count);
         var report = _pluginLoader.LoadWithReport(directory);
         _plugins.Clear();
         foreach (var plugin in report.Plugins) _plugins.Add(new(plugin.Id, plugin.Name, plugin.Version.ToString(), "Loaded"));

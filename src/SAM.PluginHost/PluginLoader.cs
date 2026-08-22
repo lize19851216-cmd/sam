@@ -2,6 +2,10 @@
 using SAM.Core.Plugins;
 namespace SAM.PluginHost;
 public sealed class PluginLoader {
+    private PluginRuntime? _runtime;
+
+    public PluginUnloadReport Unload() => _runtime?.Stop() ?? new([], []);
+
     public IReadOnlyList<ISamPlugin> LoadFrom(string directory) {
         return LoadWithReport(directory).Plugins;
     }
@@ -19,6 +23,8 @@ public sealed class PluginLoader {
                 }
             } catch (Exception exception) { failures.Add(new(file, exception.Message)); }
         }
-        return new(registry.Plugins.ToArray(), failures);
+        var plugins = registry.Plugins.ToArray();
+        _runtime = new PluginRuntime(plugins);
+        return new(plugins, failures);
     }
 }

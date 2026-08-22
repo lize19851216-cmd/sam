@@ -17,7 +17,8 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Persist GUI accounts to SQLite and show persisted task history
 - [x] Task Center UI (status, retry count, cancellation and task history)
 - [x] Plugin management UI (local plugin discovery and load report)
-- [ ] Plugin unload/isolation policy
+- [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
+- [ ] Plugin process isolation policy for untrusted third-party code
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
 - [x] M1 safe client selection and explicit opt-in configuration
@@ -27,4 +28,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 11/11 tests
+- `dotnet test SAM.slnx --no-build` — passed, 13/13 tests
