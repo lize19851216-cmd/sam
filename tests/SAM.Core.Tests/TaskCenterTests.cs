@@ -18,6 +18,14 @@ public sealed class TaskCenterTests
         Assert.Equal(SAM.Core.AccountStatus.Online, result.Status);
         Assert.Equal("76561190000000001", account.SteamId);
     }
+
+    [Fact]
+    public void Steam_client_factory_defaults_to_fake_and_requires_explicit_transport()
+    {
+        var factory = new SteamClientFactory();
+        Assert.IsType<SAM.Core.FakeSteamClient>(factory.Create(SteamClientMode.Fake));
+        Assert.Throws<InvalidOperationException>(() => factory.Create(SteamClientMode.SteamKit));
+    }
     [Fact]
     public async Task Retries_transient_failure_and_persists_terminal_state()
     {
