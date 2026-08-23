@@ -8,6 +8,7 @@ namespace SAM.PluginHost;
 /// <summary>Metadata-only local IPC transport restricted to the current user. The caller must launch any restricted child process separately.</summary>
 public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
 {
+    private const int MaximumMessageSize = 1_048_576;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly string _pipeName;
 
@@ -39,6 +40,7 @@ public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
     private static async Task WriteMessageAsync(Stream stream, string message, CancellationToken cancellationToken)
     {
         var payload = Encoding.UTF8.GetBytes(message);
+        if (payload.Length is <= 0 or > MaximumMessageSize) throw new InvalidDataException("Invalid isolated plugin host message size.");
         var length = new byte[sizeof(int)];
         BinaryPrimitives.WriteInt32LittleEndian(length, payload.Length);
         await stream.WriteAsync(length, cancellationToken);
@@ -51,7 +53,7 @@ public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
         var length = new byte[sizeof(int)];
         await stream.ReadExactlyAsync(length, cancellationToken);
         var size = BinaryPrimitives.ReadInt32LittleEndian(length);
-        if (size is <= 0 or > 1_048_576) throw new InvalidDataException("Invalid isolated plugin host message size.");
+        if (size is <= 0 or > MaximumMessageSize) throw new InvalidDataException("Invalid isolated plugin host message size.");
         var payload = new byte[size];
         await stream.ReadExactlyAsync(payload, cancellationToken);
         return Encoding.UTF8.GetString(payload);
