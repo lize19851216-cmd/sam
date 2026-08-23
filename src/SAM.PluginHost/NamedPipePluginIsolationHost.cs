@@ -9,19 +9,29 @@ namespace SAM.PluginHost;
 public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
 {
     private const int MaximumMessageSize = 1_048_576;
+    private static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly string _pipeName;
+    private readonly TimeSpan _operationTimeout;
 
-    public NamedPipePluginIsolationHost(string pipeName) => _pipeName = PluginIsolationEndpoint.ValidatePipeName(pipeName);
+    public NamedPipePluginIsolationHost(string pipeName, TimeSpan? operationTimeout = null)
+    {
+        _pipeName = PluginIsolationEndpoint.ValidatePipeName(pipeName);
+        _operationTimeout = operationTimeout ?? DefaultOperationTimeout;
+        if (_operationTimeout <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(operationTimeout), "The isolated plugin host operation timeout must be positive.");
+    }
 
     public async Task<PluginIsolationResult> InspectAsync(PluginIsolationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         request.Validate();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_operationTimeout);
         await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PluginIsolationEndpoint.LocalUserPipeOptions);
-        await pipe.ConnectAsync(cancellationToken);
-        await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), cancellationToken);
-        var response = await ReadMessageAsync(pipe, cancellationToken);
+        await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
+        await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), timeout.Token).ConfigureAwait(false);
+        var response = await ReadMessageAsync(pipe, timeout.Token).ConfigureAwait(false);
         return JsonSerializer.Deserialize<PluginIsolationResult>(response, JsonOptions) ?? throw new InvalidDataException("Invalid isolated plugin host response.");
     }
 

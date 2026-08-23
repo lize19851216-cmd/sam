@@ -367,6 +367,21 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Named_pipe_isolation_host_times_out_when_no_local_host_is_available()
+    {
+        var host = new NamedPipePluginIsolationHost($"sam-missing-{Guid.NewGuid():N}", TimeSpan.FromMilliseconds(100));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            host.InspectAsync(new PluginIsolationRequest("plugin.dll", new string('A', 64))));
+    }
+
+    [Fact]
+    public void Named_pipe_isolation_host_rejects_non_positive_operation_timeout()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new NamedPipePluginIsolationHost("sam-plugin", TimeSpan.Zero));
+    }
+
+    [Fact]
     public void Plugin_isolation_policy_rejects_untrusted_assemblies_before_execution()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
