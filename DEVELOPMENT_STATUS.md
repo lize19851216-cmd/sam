@@ -1,6 +1,6 @@
 ﻿# SAM Development Status
 ## Current phase
-Milestone 1 — SteamKit adapter preparation
+Milestone 1 — safe SteamKit transport foundation
 
 ## Completed
 - [x] .NET 10 / WPF
@@ -47,10 +47,14 @@ Milestone 1 — SteamKit adapter preparation
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
 - [x] M1 safe client selection and explicit opt-in configuration
 - [x] Desktop startup uses the safe client factory and remains in Fake mode by default
-- [ ] M1 SteamKit transport implementation (without storing credentials in SAM)
+- [x] M1 SteamKit transport implementation with short-lived sessions and external, non-persisting credential configuration
+
+## Next phase
+- [ ] M2: define a user-controlled interactive credential broker integration; SAM must continue to avoid storing passwords, cookies, access tokens, and Steam Guard secrets
+- [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 31/31 tests
+- `dotnet test SAM.slnx --no-build` — passed, 38/38 tests
 - CI-equivalent `win-x64` self-contained single-file publish — passed
