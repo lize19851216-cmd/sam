@@ -1,0 +1,35 @@
+using SAM.Core.Steam;
+
+namespace SAM.Infrastructure.Steam;
+
+/// <summary>
+/// Hosts one secret-free broker request. Interactive credential collection is
+/// deliberately owned by the separately launched broker application.
+/// </summary>
+public sealed class SteamAuthenticationBrokerHost(ISteamAuthenticationTransport authenticationTransport)
+{
+    public Task ServeOnceAsync(string pipeName, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(authenticationTransport);
+        return NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, AuthenticateAsync, cancellationToken);
+    }
+
+    private async Task<SteamAuthenticationBrokerResponse> AuthenticateAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await authenticationTransport.AuthenticateAsync(request.AccountName, cancellationToken).ConfigureAwait(false);
+            var response = new SteamAuthenticationBrokerResponse(result.Status, result.SteamId, result.PersonaName);
+            response.Validate();
+            return response;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Failed);
+        }
+    }
+}
