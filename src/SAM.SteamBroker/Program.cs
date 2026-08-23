@@ -27,12 +27,7 @@ try
     var configurator = new ConsoleSteamLogOnConfigurator();
     var transport = new SteamKitAuthenticationTransport(new SteamKitAuthenticationSessionFactory(configurator));
     var host = new SteamAuthenticationBrokerHost(transport);
-    while (!cancellation.IsCancellationRequested)
-    {
-        await host.ServeOnceAsync(pipeName, cancellation.Token);
-        Console.WriteLine("SAM Steam authentication broker completed a local request and is waiting for another.");
-    }
-
+    await host.ServeUntilCancelledAsync(pipeName, cancellation.Token);
     return 0;
 }
 catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
