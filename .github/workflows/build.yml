@@ -70,6 +70,10 @@ jobs:
             throw 'Build or test modified tracked repository files.'
           }
 
+      - name: Verify artifact checksums
+        shell: pwsh
+        run: pwsh -NoProfile -File .\scripts\verify-artifacts.ps1 -ArtifactDirectory .\artifacts
+
       - name: Upload SAM
         uses: actions/upload-artifact@v4
         with:
