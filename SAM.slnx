@@ -4,5 +4,6 @@
   <Project Path="src/SAM.Desktop/SAM.Desktop.csproj" />
   <Project Path="tests/SAM.Core.Tests/SAM.Core.Tests.csproj" />
   <Project Path="src/SAM.PluginHost/SAM.PluginHost.csproj" />
+  <Project Path="src/SAM.SteamBroker/SAM.SteamBroker.csproj" />
 </Solution>
 

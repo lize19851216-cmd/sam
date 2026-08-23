@@ -52,11 +52,11 @@ Milestone 1 — safe SteamKit transport foundation
 ## Next phase
 - [x] M2: sanitize SteamKit transport failures while preserving caller-requested cancellation
 - [x] M2: define a current-user-only local authentication broker protocol that exchanges account names and sanitized outcomes only
-- [ ] M2: implement a user-controlled external broker that owns interactive credentials; SAM must continue to avoid storing passwords, cookies, access tokens, and Steam Guard secrets
-- [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment
+- [x] M2: implement a separately launched, one-request console broker that owns interactive credentials in memory only
+- [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment (no real credential supplied to SAM)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
-- `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 44/44 tests
+- `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
+- `dotnet test SAM.slnx --no-build` — passed, 46/46 tests
 - CI-equivalent `win-x64` self-contained single-file publish — passed
