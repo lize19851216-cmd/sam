@@ -43,6 +43,15 @@ jobs:
       - name: Publish Steam authentication broker Windows x64
         run: dotnet publish .\src\SAM.SteamBroker\SAM.SteamBroker.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\SAM.SteamBroker
 
+      - name: Generate artifact checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem .\artifacts -Recurse -File | Where-Object Name -ne SHA256SUMS.txt |
+            Get-FileHash -Algorithm SHA256 |
+            Sort-Object Path |
+            ForEach-Object { "$($_.Hash) *$($_.Path.Substring((Resolve-Path .\artifacts).Path.Length + 1).Replace('\\', '/'))" } |
+            Set-Content .\artifacts\SHA256SUMS.txt
+
       - name: Upload SAM
         uses: actions/upload-artifact@v4
         with:
@@ -54,3 +63,9 @@ jobs:
         with:
           name: SAM-SteamBroker-win-x64
           path: artifacts/SAM.SteamBroker/
+
+      - name: Upload artifact checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: SAM-win-x64-checksums
+          path: artifacts/SHA256SUMS.txt
