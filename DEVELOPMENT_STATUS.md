@@ -62,9 +62,11 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: the standalone broker remains available for subsequent local requests, and desktop blocks mock simulated-account batches from reaching it
 - [x] M2: continuous broker service is covered by repeated no-credential probe tests
 - [x] M2: standalone broker integration is validated through repeated local probes with no account or credential data
+- [x] M2: standalone broker smoke tests execute the broker matching the active Debug or Release test configuration
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
 - `dotnet test SAM.slnx --no-build` — passed, 53/53 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 53/53 tests
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
