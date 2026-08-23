@@ -19,8 +19,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<PluginDisplay> _plugins = [];
     private readonly PluginLoader _pluginLoader = new();
     private readonly ExclusiveOperationGate _accountOperationGate = new();
-    private readonly SteamClientOptions _steamClientOptions = new();
-    private readonly WorkerPool _pool;
+    private SteamClientOptions _steamClientOptions = new();
+    private WorkerPool _pool;
     private readonly SamDatabase _database;
     private readonly SqliteTaskStore _taskStore;
     private readonly SamTaskCenter _taskCenter;
@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private const int TaskHistoryRetentionDays = 90;
     private SamTaskHistoryCursor? _taskHistoryCursor;
     private CancellationTokenSource? _loginCancellation;
+    private bool _externalBrokerEnabled;
 
     public MainWindow()
     {
@@ -63,6 +64,7 @@ public partial class MainWindow : Window
             foreach (var account in await _database.GetAccountsAsync()) _accounts.Add(account);
             await RefreshTasksAsync();
             var clientMode = _steamClientOptions.EffectiveMode == SteamClientMode.Fake ? "模拟客户端" : "SteamKit 客户端";
+            EnvironmentText.Text = "   模拟环境";
             StatusText.Text = $"就绪：{clientMode}，已加载 {_accounts.Count} 个模拟账号";
             _log.Information("SAM desktop initialized with {AccountCount} accounts using {SteamClientMode}", _accounts.Count, _steamClientOptions.EffectiveMode);
         }
@@ -110,8 +112,72 @@ public partial class MainWindow : Window
     private async void Generate100_Click(object sender, RoutedEventArgs e) => await GenerateAsync(100);
     private async void Generate500_Click(object sender, RoutedEventArgs e) => await GenerateAsync(500);
 
+    private void ClientModeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (BrokerPipeNameBox is null) return;
+        BrokerPipeNameBox.IsEnabled = ClientModeBox.SelectedIndex == 1 && _loginCancellation is null;
+    }
+
+    private void ApplyClientMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loginCancellation is not null)
+        {
+            StatusText.Text = "任务运行中，无法更改认证客户端";
+            return;
+        }
+
+        var factory = new SteamClientFactory();
+        if (ClientModeBox.SelectedIndex != 1)
+        {
+            _steamClientOptions = new SteamClientOptions();
+            _pool = new WorkerPool(factory.Create(_steamClientOptions));
+            _externalBrokerEnabled = false;
+            EnvironmentText.Text = "   模拟环境";
+            BrokerPipeNameBox.IsEnabled = false;
+            StatusText.Text = "已应用模拟客户端";
+            _log.Information("Desktop switched to the safe fake Steam client");
+            return;
+        }
+
+        try
+        {
+            var confirmation = MessageBox.Show(
+                "外部认证代理只会连接当前用户的本地管道。请先手动启动 SAM.SteamBroker；SAM 不会接收或保存密码、Cookie、令牌或 Steam Guard Secret。是否启用？",
+                "启用外部认证代理",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                ClientModeBox.SelectedIndex = _externalBrokerEnabled ? 1 : 0;
+                return;
+            }
+
+            var pipeName = SteamAuthenticationBrokerEndpoint.ValidatePipeName(BrokerPipeNameBox.Text);
+            _steamClientOptions = new SteamClientOptions(SteamClientMode.SteamKit, EnableSteamKit: true);
+            _pool = new WorkerPool(factory.CreateWithExternalBroker(_steamClientOptions, pipeName));
+            _externalBrokerEnabled = true;
+            EnvironmentText.Text = "   外部认证代理";
+            BrokerPipeNameBox.IsEnabled = true;
+            StatusText.Text = $"已应用外部认证代理：{pipeName}";
+            _log.Information("Desktop enabled the explicit external Steam authentication broker with pipe {BrokerPipeName}", pipeName);
+        }
+        catch (Exception exception)
+        {
+            ClientModeBox.SelectedIndex = _externalBrokerEnabled ? 1 : 0;
+            BrokerPipeNameBox.IsEnabled = _externalBrokerEnabled;
+            StatusText.Text = "外部认证代理设置无效，现有认证客户端未改变";
+            _log.Warning(exception, "External Steam authentication broker configuration was rejected");
+        }
+    }
+
     private async void Login_Click(object sender, RoutedEventArgs e)
     {
+        if ((ClientModeBox.SelectedIndex == 1) != _externalBrokerEnabled)
+        {
+            StatusText.Text = "认证客户端设置已变更，请先点击“应用认证设置”";
+            return;
+        }
+
         var loginLease = _accountOperationGate.TryEnter();
         if (loginLease is null)
         {
@@ -161,6 +227,9 @@ public partial class MainWindow : Window
         Generate500Button.IsEnabled = isEnabled;
         LoginButton.IsEnabled = isEnabled;
         ConcurrencyBox.IsEnabled = isEnabled;
+        ClientModeBox.IsEnabled = isEnabled;
+        ApplyClientModeButton.IsEnabled = isEnabled;
+        BrokerPipeNameBox.IsEnabled = isEnabled && ClientModeBox.SelectedIndex == 1;
     }
 
     private async Task RefreshTasksAsync()

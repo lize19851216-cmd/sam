@@ -17,4 +17,14 @@ public sealed class SteamClientFactory
         SteamClientMode.SteamKit => throw new InvalidOperationException("SteamKit mode requires an explicitly supplied transport."),
         _ => throw new ArgumentOutOfRangeException(nameof(mode))
     };
+
+    /// <summary>Creates an explicitly enabled SteamKit client that delegates authentication to a local external broker.</summary>
+    public ISteamClientService CreateWithExternalBroker(SteamClientOptions options, string pipeName)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.EffectiveMode != SteamClientMode.SteamKit)
+            throw new InvalidOperationException("External Steam authentication broker use must be explicitly enabled.");
+
+        return Create(options, new NamedPipeSteamAuthenticationBroker(pipeName));
+    }
 }

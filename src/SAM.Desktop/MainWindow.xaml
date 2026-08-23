@@ -5,9 +5,10 @@
  WindowStartupLocation="CenterScreen">
  <DockPanel Margin="12">
    <Border DockPanel.Dock="Top" Padding="12" Margin="0,0,0,10" BorderThickness="1" BorderBrush="Gray">
+     <StackPanel>
      <StackPanel Orientation="Horizontal">
        <TextBlock Text="SAM Milestone 1" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
-       <TextBlock Text="   模拟环境" VerticalAlignment="Center"/>
+       <TextBlock x:Name="EnvironmentText" Text="   模拟环境" VerticalAlignment="Center"/>
        <TextBlock Text="   并发:" VerticalAlignment="Center" Margin="30,0,4,0"/>
        <TextBox x:Name="ConcurrencyBox" Text="10" Width="55" Padding="5"/>
        <Button x:Name="Generate100Button" Content="生成100账号" Click="Generate100_Click" Margin="20,0,5,0" Padding="12,5"/>
@@ -15,6 +16,18 @@
        <Button x:Name="LoginButton" Content="批量模拟登录" Click="Login_Click" Margin="5,0" Padding="12,5"/>
        <Button x:Name="CancelButton" Content="取消任务" Click="Cancel_Click" Margin="5,0" Padding="12,5" IsEnabled="False"/>
        <Button Content="加载插件" Click="LoadPlugins_Click" Margin="5,0" Padding="12,5"/>
+     </StackPanel>
+     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+       <TextBlock Text="认证客户端:" VerticalAlignment="Center"/>
+       <ComboBox x:Name="ClientModeBox" Width="130" SelectedIndex="0" SelectionChanged="ClientModeBox_SelectionChanged" Margin="6,0,0,0">
+         <ComboBoxItem Content="模拟客户端"/>
+         <ComboBoxItem Content="外部认证代理"/>
+       </ComboBox>
+       <TextBlock Text="本地管道:" VerticalAlignment="Center" Margin="16,0,4,0"/>
+       <TextBox x:Name="BrokerPipeNameBox" Text="sam-steam-auth" Width="180" Padding="5" IsEnabled="False"/>
+       <Button x:Name="ApplyClientModeButton" Content="应用认证设置" Click="ApplyClientMode_Click" Margin="6,0,0,0" Padding="10,4"/>
+       <TextBlock Text="仅连接当前用户的本地代理；SAM 不接收或存储凭据" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
+     </StackPanel>
      </StackPanel>
    </Border>
    <StatusBar DockPanel.Dock="Bottom">
