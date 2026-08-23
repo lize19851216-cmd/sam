@@ -36,5 +36,25 @@ public sealed class PluginTrustPolicy
         return Convert.ToHexString(SHA256.HashData(stream));
     }
 
+    /// <summary>Safely obtains a hash for UI diagnostics when a plugin file may no longer be readable.</summary>
+    public static bool TryCalculateHash(string assemblyPath, out string hash)
+    {
+        try
+        {
+            hash = CalculateHash(assemblyPath);
+            return true;
+        }
+        catch (IOException)
+        {
+            hash = string.Empty;
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            hash = string.Empty;
+            return false;
+        }
+    }
+
     private static string NormalizeHash(string hash) => hash.Trim().Replace(" ", string.Empty, StringComparison.Ordinal);
 }

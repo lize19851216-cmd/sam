@@ -242,6 +242,17 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_trust_policy_can_safely_skip_an_unreadable_diagnostic_hash()
+    {
+        var missingAssembly = Path.Combine(Path.GetTempPath(), $"sam-missing-{Guid.NewGuid():N}.dll");
+
+        var calculated = PluginTrustPolicy.TryCalculateHash(missingAssembly, out var hash);
+
+        Assert.False(calculated);
+        Assert.Empty(hash);
+    }
+
+    [Fact]
     public async Task Sqlite_task_store_persists_concurrent_worker_writes()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

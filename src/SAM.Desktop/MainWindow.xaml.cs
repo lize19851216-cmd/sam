@@ -223,7 +223,7 @@ public partial class MainWindow : Window
         foreach (var plugin in report.Plugins) _plugins.Add(new(plugin.Id, plugin.Name, plugin.Version.ToString(), "Loaded", ""));
         foreach (var failure in report.Failures)
         {
-            var hash = File.Exists(failure.AssemblyPath) ? PluginTrustPolicy.CalculateHash(failure.AssemblyPath) : "";
+            PluginTrustPolicy.TryCalculateHash(failure.AssemblyPath, out var hash);
             _plugins.Add(new(Path.GetFileName(failure.AssemblyPath), "", "", failure.Message, hash));
         }
         StatusText.Text = $"插件：已加载 {report.Plugins.Count}，失败 {report.Failures.Count}";
