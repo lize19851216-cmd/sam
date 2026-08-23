@@ -52,6 +52,12 @@ public sealed class WorkerPool
                 account.LastMessage = "Cancelled";
                 NotifyAccountChanged(changed, account);
             }
+            catch (Exception exception)
+            {
+                account.Status = AccountStatus.Failed;
+                account.LastMessage = $"Task infrastructure error: {exception.Message}";
+                NotifyAccountChanged(changed, account);
+            }
             finally { if (entered) gate.Release(); }
         });
         await Task.WhenAll(tasks);

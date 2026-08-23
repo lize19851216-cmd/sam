@@ -69,6 +69,25 @@ public sealed class WorkerPoolTests
         Assert.NotEqual(AccountStatus.Imported, account.Status);
     }
 
+    [Fact]
+    public async Task Task_persistence_failure_marks_one_account_failed_and_allows_the_batch_to_continue()
+    {
+        var accounts = new[]
+        {
+            new Account { AccountName = "mock_0001" },
+            new Account { AccountName = "mock_0002" }
+        };
+
+        await new WorkerPool(new FakeSteamClient()).RunLoginBatchAsync(
+            accounts,
+            concurrency: 1,
+            taskCenter: new SamTaskCenter(new FailFirstSaveTaskStore()));
+
+        Assert.Equal(AccountStatus.Failed, accounts[0].Status);
+        Assert.Equal(AccountStatus.Online, accounts[1].Status);
+        Assert.Contains("Task infrastructure error", accounts[0].LastMessage);
+    }
+
     private sealed class TrackingSteamClient : ISteamClientService
     {
         private int _active;
@@ -105,6 +124,21 @@ public sealed class WorkerPoolTests
             return Task.CompletedTask;
         }
         public Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<SamTaskRecord>>([]);
+    }
+
+    private sealed class FailFirstSaveTaskStore : ISamTaskStore
+    {
+        private int _saveCount;
+
+        public Task SaveAsync(SamTaskRecord task, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref _saveCount) == 1)
+                throw new InvalidOperationException("SQLite unavailable");
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SamTaskRecord>>([]);
     }
 }
 
