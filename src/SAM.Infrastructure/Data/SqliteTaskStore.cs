@@ -57,10 +57,10 @@ public sealed class SqliteTaskStore : ISamTaskStore
         command.Parameters.AddWithValue("$status", (int)task.Status);
         command.Parameters.AddWithValue("$retryCount", task.RetryCount);
         command.Parameters.AddWithValue("$message", task.Message);
-        command.Parameters.AddWithValue("$createdAt", task.CreatedAt.ToString("O"));
-        command.Parameters.AddWithValue("$startedAt", (object?)task.StartedAt?.ToString("O") ?? DBNull.Value);
-        command.Parameters.AddWithValue("$completedAt", (object?)task.CompletedAt?.ToString("O") ?? DBNull.Value);
-        command.Parameters.AddWithValue("$updatedAt", task.UpdatedAt.ToString("O"));
+        command.Parameters.AddWithValue("$createdAt", ToStorageTimestamp(task.CreatedAt));
+        command.Parameters.AddWithValue("$startedAt", task.StartedAt is { } startedAt ? ToStorageTimestamp(startedAt) : DBNull.Value);
+        command.Parameters.AddWithValue("$completedAt", task.CompletedAt is { } completedAt ? ToStorageTimestamp(completedAt) : DBNull.Value);
+        command.Parameters.AddWithValue("$updatedAt", ToStorageTimestamp(task.UpdatedAt));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
@@ -140,7 +140,7 @@ public sealed class SqliteTaskStore : ISamTaskStore
             ORDER BY UpdatedAt DESC, Id DESC
             LIMIT $limit;
             """;
-        command.Parameters.AddWithValue("$cursorUpdatedAt", (object?)cursor?.UpdatedAt.ToString("O") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cursorUpdatedAt", cursor is { } historyCursor ? ToStorageTimestamp(historyCursor.UpdatedAt) : DBNull.Value);
         command.Parameters.AddWithValue("$cursorId", (object?)cursor?.Id.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$limit", limit);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -156,7 +156,13 @@ public sealed class SqliteTaskStore : ISamTaskStore
     {
         Id = Guid.Parse(reader.GetString(0)), AccountId = Guid.Parse(reader.GetString(1)), TaskType = reader.GetString(2),
         Status = (SamTaskStatus)reader.GetInt32(3), RetryCount = reader.GetInt32(4), Message = reader.GetString(5),
-        CreatedAt = DateTimeOffset.Parse(reader.GetString(6)), StartedAt = reader.IsDBNull(7) ? null : DateTimeOffset.Parse(reader.GetString(7)),
-        CompletedAt = reader.IsDBNull(8) ? null : DateTimeOffset.Parse(reader.GetString(8)), UpdatedAt = DateTimeOffset.Parse(reader.GetString(9))
+        CreatedAt = ParseStorageTimestamp(reader.GetString(6)), StartedAt = reader.IsDBNull(7) ? null : ParseStorageTimestamp(reader.GetString(7)),
+        CompletedAt = reader.IsDBNull(8) ? null : ParseStorageTimestamp(reader.GetString(8)), UpdatedAt = ParseStorageTimestamp(reader.GetString(9))
     };
+
+    private static string ToStorageTimestamp(DateTimeOffset value) =>
+        value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
+
+    private static DateTimeOffset ParseStorageTimestamp(string value) =>
+        DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 }
