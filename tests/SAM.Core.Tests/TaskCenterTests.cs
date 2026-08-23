@@ -236,6 +236,28 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_persists_concurrent_account_updates()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var accounts = Enumerable.Range(1, 32).Select(index => new SAM.Core.Account
+            {
+                AccountName = $"mock_{index:D4}",
+                SteamId = $"7656119{index:D11}"
+            }).ToArray();
+
+            await Task.WhenAll(accounts.Select(database.SaveAccountAsync));
+
+            var stored = await database.GetAccountsAsync();
+            Assert.Equal(accounts.Select(account => account.Id).Order(), stored.Select(account => account.Id).Order());
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_registry_rejects_duplicate_ids()
     {
         var registry = new PluginRegistry();
