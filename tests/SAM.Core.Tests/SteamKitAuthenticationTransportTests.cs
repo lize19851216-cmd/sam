@@ -65,14 +65,14 @@ public sealed class SteamKitAuthenticationTransportTests
     }
 
     [Fact]
-    public void Modern_auth_session_details_keep_the_host_account_and_disable_persistence()
+    public void Modern_auth_session_details_keep_the_host_account_interactive_authenticator_and_disable_persistence()
     {
         var details = SteamKitAuthSessionDetailsFactory.Create("account_0001", new PasswordConfigurator());
 
         Assert.Equal("account_0001", details.Username);
         Assert.Equal("password", details.Password);
         Assert.False(details.IsPersistentSession);
-        Assert.NotNull(details.Authenticator);
+        Assert.IsType<UserConsoleAuthenticator>(details.Authenticator);
     }
 
     [Fact]
