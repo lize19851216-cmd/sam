@@ -43,6 +43,21 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
     }
 
     [Fact]
+    public async Task Broker_preserves_a_sanitized_invalid_Steam_Guard_code_outcome()
+    {
+        var pipeName = $"sam-steam-broker-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var server = NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, (_, _) =>
+            Task.FromResult(new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.InvalidSteamGuardCode)), timeout.Token);
+
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("test_account_0001", timeout.Token);
+        await server;
+
+        Assert.Equal(SteamAuthenticationStatus.InvalidSteamGuardCode, result.Status);
+        Assert.Equal("Steam Guard code was rejected or expired.", result.Message);
+    }
+
+    [Fact]
     public async Task Caller_requested_cancellation_is_not_replaced_by_the_broker_timeout()
     {
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));

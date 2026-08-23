@@ -75,6 +75,8 @@ public sealed class SteamKitAuthenticationTransportTests
     [Theory]
     [InlineData(EResult.OK, SteamAuthenticationStatus.Online)]
     [InlineData(EResult.AccountLogonDenied, SteamAuthenticationStatus.RequiresSteamGuard)]
+    [InlineData(EResult.InvalidLoginAuthCode, SteamAuthenticationStatus.InvalidSteamGuardCode)]
+    [InlineData(EResult.InvalidPassword, SteamAuthenticationStatus.InvalidCredentials)]
     [InlineData(EResult.RateLimitExceeded, SteamAuthenticationStatus.RateLimited)]
     [InlineData(EResult.Fail, SteamAuthenticationStatus.Failed)]
     public void SteamKit_results_are_mapped_without_exposing_protocol_details(EResult result, SteamAuthenticationStatus expectedStatus)

@@ -1,7 +1,7 @@
 namespace SAM.Core.Steam;
 
 /// <summary>Sanitized outcome returned by a future SteamKit transport; it intentionally contains no credentials or secrets.</summary>
-public enum SteamAuthenticationStatus { Online, RequiresSteamGuard, RateLimited, Failed }
+public enum SteamAuthenticationStatus { Online, RequiresSteamGuard, InvalidSteamGuardCode, InvalidCredentials, RateLimited, Failed }
 public sealed record SteamAuthenticationResult(SteamAuthenticationStatus Status, string Message, string? SteamId = null, string? PersonaName = null);
 
 /// <summary>Secret-free request sent from SAM to a separately controlled local authentication broker.</summary>

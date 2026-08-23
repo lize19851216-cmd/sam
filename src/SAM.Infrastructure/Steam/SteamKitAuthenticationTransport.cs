@@ -107,12 +107,16 @@ public static class SteamKitAuthenticationResultMapper
     public static SteamAuthenticationResult From(EResult result, string? steamId = null) => result switch
     {
         EResult.OK => new(SteamAuthenticationStatus.Online, "Steam authentication succeeded.", steamId),
+        _ when IsInvalidSteamGuardCodeResult(result) => new(SteamAuthenticationStatus.InvalidSteamGuardCode, "Steam Guard code was rejected or expired."),
         _ when IsSteamGuardResult(result) => new(SteamAuthenticationStatus.RequiresSteamGuard, "Steam Guard verification is required."),
+        _ when IsInvalidCredentialResult(result) => new(SteamAuthenticationStatus.InvalidCredentials, "Steam rejected the account name or password."),
         _ when IsRateLimitedResult(result) => new(SteamAuthenticationStatus.RateLimited, "Steam temporarily limited this authentication attempt."),
         _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
     };
 
+    private static bool IsInvalidSteamGuardCodeResult(EResult result) => result is EResult.InvalidLoginAuthCode or EResult.ExpiredLoginAuthCode;
     private static bool IsSteamGuardResult(EResult result) => result.ToString() is "AccountLogonDenied" or "AccountLogonDeniedNoMail" or "AccountLoginDeniedNeedTwoFactor";
+    private static bool IsInvalidCredentialResult(EResult result) => result is EResult.InvalidPassword or EResult.AccountNotFound or EResult.IllegalPassword or EResult.PasswordUnset or EResult.RequirePasswordReEntry;
     private static bool IsRateLimitedResult(EResult result) => result.ToString() is "RateLimitExceeded" or "ServiceUnavailable" or "TryAnotherCM";
 }
 
