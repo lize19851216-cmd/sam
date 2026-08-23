@@ -1,6 +1,7 @@
 using SAM.Core.Steam;
 using SAM.Infrastructure.Steam;
 using SteamKit2;
+using SteamKit2.Authentication;
 using Xunit;
 
 namespace SAM.Core.Tests;
@@ -182,6 +183,6 @@ public sealed class SteamKitAuthenticationTransportTests
 
     private sealed class AuthenticatorChangingConfigurator : IExternalSteamAuthSessionConfigurator
     {
-        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.Authenticator = null!;
+        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.Authenticator = new UserConsoleAuthenticator();
     }
 }

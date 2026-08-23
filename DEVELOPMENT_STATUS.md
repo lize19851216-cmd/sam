@@ -111,6 +111,7 @@ Milestone 3 — explicit single-account external-broker test path
 - SteamKit modern credential-session migration verification — passed, 86/86 tests
 - Modern authentication exception diagnostic verification — passed, 87/87 tests
 - External authenticator boundary verification — passed, 87/87 tests
+- Authenticator replacement regression verification — passed, 87/87 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
