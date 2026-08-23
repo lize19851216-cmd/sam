@@ -167,6 +167,35 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Sqlite_store_orders_task_history_by_instant_across_time_zones()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var store = new SqliteTaskStore(path);
+            await store.InitializeAsync();
+            var oldest = new SamTaskRecord
+            {
+                TaskType = "oldest",
+                UpdatedAt = new DateTimeOffset(2026, 8, 23, 20, 0, 0, TimeSpan.FromHours(8))
+            };
+            var newest = new SamTaskRecord
+            {
+                TaskType = "newest",
+                UpdatedAt = new DateTimeOffset(2026, 8, 23, 5, 0, 0, TimeSpan.FromHours(-8))
+            };
+            await store.SaveAsync(oldest);
+            await store.SaveAsync(newest);
+
+            var history = await store.GetPageAsync(0, 2);
+
+            Assert.Equal(["newest", "oldest"], history.Select(task => task.TaskType));
+            Assert.All(history, task => Assert.Equal(TimeSpan.Zero, task.UpdatedAt.Offset));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_round_trips_generated_account()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
