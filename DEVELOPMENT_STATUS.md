@@ -78,6 +78,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: local broker protocol rejects simulated `mock_` accounts at the boundary, not only in the desktop UI
 - [x] Release hygiene: reproducible .NET build outputs are excluded from source control
 - [x] M3: a valid persisted single-account test name is restored into the desktop form without any credential data
+- [x] CI: release workflow verifies build and test commands leave no tracked-file changes
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)

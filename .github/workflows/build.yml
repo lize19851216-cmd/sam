@@ -61,6 +61,15 @@ jobs:
             ForEach-Object { "$($_.Hash) *$($_.Path.Substring((Resolve-Path .\artifacts).Path.Length + 1).Replace('\\', '/'))" } |
             Set-Content .\artifacts\SHA256SUMS.txt
 
+      - name: Verify build leaves no tracked-file changes
+        shell: pwsh
+        run: |
+          $changes = git status --porcelain
+          if ($changes) {
+            $changes
+            throw 'Build or test modified tracked repository files.'
+          }
+
       - name: Upload SAM
         uses: actions/upload-artifact@v4
         with:
