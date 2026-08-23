@@ -35,8 +35,19 @@ public sealed class SteamKitAuthenticationTransport(ISteamKitAuthenticationSessi
         ArgumentException.ThrowIfNullOrWhiteSpace(accountName);
         ArgumentNullException.ThrowIfNull(sessionFactory);
 
-        await using var session = sessionFactory.Create() ?? throw new InvalidOperationException("SteamKit session factory returned no session.");
-        return await session.AuthenticateAsync(accountName, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var session = sessionFactory.Create() ?? throw new InvalidOperationException("SteamKit session factory returned no session.");
+            return await session.AuthenticateAsync(accountName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed.");
+        }
     }
 }
 

@@ -50,11 +50,12 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M1 SteamKit transport implementation with short-lived sessions and external, non-persisting credential configuration
 
 ## Next phase
+- [x] M2: sanitize SteamKit transport failures while preserving caller-requested cancellation
 - [ ] M2: define a user-controlled interactive credential broker integration; SAM must continue to avoid storing passwords, cookies, access tokens, and Steam Guard secrets
 - [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 38/38 tests
+- `dotnet test SAM.slnx --no-build` — passed, 40/40 tests
 - CI-equivalent `win-x64` self-contained single-file publish — passed
