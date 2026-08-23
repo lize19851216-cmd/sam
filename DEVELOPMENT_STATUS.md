@@ -58,10 +58,11 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: automated no-credential end-to-end verification covers broker, Steam adapter, Worker Pool, and Task Center states
 - [x] M2: desktop can probe the local external broker without sending an account or requesting credentials
 - [x] M2: the standalone broker remains available for subsequent local requests, and desktop blocks mock simulated-account batches from reaching it
+- [x] M2: continuous broker service is covered by repeated no-credential probe tests
 - [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment (no real credential supplied to SAM)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 51/51 tests
+- `dotnet test SAM.slnx --no-build` — passed, 52/52 tests
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed

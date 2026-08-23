@@ -52,6 +52,23 @@ public sealed class SteamAuthenticationBrokerHostTests
         Assert.False(transport.WasCalled);
     }
 
+    [Fact]
+    public async Task Host_continues_serving_multiple_credential_free_probes_until_cancelled()
+    {
+        var pipeName = $"sam-steam-host-{Guid.NewGuid():N}";
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var transport = new ThrowingTransport();
+        var server = new SteamAuthenticationBrokerHost(transport).ServeUntilCancelledAsync(pipeName, cancellation.Token);
+        var broker = new NamedPipeSteamAuthenticationBroker(pipeName);
+
+        Assert.True(await broker.ProbeAsync(cancellation.Token));
+        Assert.True(await broker.ProbeAsync(cancellation.Token));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => server);
+        Assert.False(transport.WasCalled);
+    }
+
     private sealed class StubTransport(SteamAuthenticationResult result) : ISteamAuthenticationTransport
     {
         public string? AccountName { get; private set; }

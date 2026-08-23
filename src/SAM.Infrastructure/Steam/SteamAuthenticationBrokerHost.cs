@@ -14,6 +14,13 @@ public sealed class SteamAuthenticationBrokerHost(ISteamAuthenticationTransport 
         return NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, AuthenticateAsync, cancellationToken);
     }
 
+    /// <summary>Continues serving local requests until the separately controlled broker is cancelled.</summary>
+    public async Task ServeUntilCancelledAsync(string pipeName, CancellationToken cancellationToken = default)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+            await ServeOnceAsync(pipeName, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task<SteamAuthenticationBrokerResponse> AuthenticateAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)
     {
         if (request.Kind == SteamAuthenticationBrokerRequestKind.Probe)
