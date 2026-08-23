@@ -40,6 +40,8 @@ public sealed record SteamAuthenticationBrokerResponse(SteamAuthenticationStatus
     {
         if (!Enum.IsDefined(Status))
             throw new ArgumentOutOfRangeException(nameof(Status));
+        if (Status != SteamAuthenticationStatus.Online && (SteamId is not null || PersonaName is not null))
+            throw new ArgumentException("Only successful authentication outcomes may include account metadata.");
         if (SteamId is { Length: > 20 } || SteamId is not null && !ulong.TryParse(SteamId, out _))
             throw new ArgumentException("The Steam ID is invalid.", nameof(SteamId));
         if (PersonaName is { Length: > 128 } || PersonaName?.Any(char.IsControl) is true)

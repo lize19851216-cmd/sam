@@ -36,7 +36,9 @@ public sealed class SteamAuthenticationBrokerHost(ISteamAuthenticationTransport 
         try
         {
             var result = await authenticationTransport.AuthenticateAsync(request.AccountName, cancellationToken).ConfigureAwait(false);
-            var response = new SteamAuthenticationBrokerResponse(result.Status, result.SteamId, result.PersonaName);
+            var response = result.Status == SteamAuthenticationStatus.Online
+                ? new SteamAuthenticationBrokerResponse(result.Status, result.SteamId, result.PersonaName)
+                : new SteamAuthenticationBrokerResponse(result.Status);
             response.Validate();
             return response;
         }

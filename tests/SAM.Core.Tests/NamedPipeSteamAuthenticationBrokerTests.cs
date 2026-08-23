@@ -94,5 +94,6 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("MOCK_0001").Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001", SteamAuthenticationBrokerRequestKind.Probe).Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "not-a-steam-id").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.InvalidCredentials, "76561190000000001", "unnecessary").Validate());
     }
 }
