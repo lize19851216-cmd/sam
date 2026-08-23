@@ -90,13 +90,14 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] Data safety: desktop account-list clearing uses a targeted SQLite clear operation with an audited deletion count
 - [x] Task Center UI serializes history loading and retention cleanup, with recoverable load-error handling
 - [x] Data safety: cancelled account mutations stop before opening a SQLite write operation
+- [x] Reliability: structured logs roll at 10 MiB in addition to the existing 14-file retention limit
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 77/77 tests
-- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 77/77 tests
+- `dotnet test SAM.slnx --no-build` — passed, 78/78 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 78/78 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed

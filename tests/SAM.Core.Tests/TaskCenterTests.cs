@@ -105,6 +105,27 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Structured_logger_rolls_when_the_configured_size_limit_is_reached()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-log-{Guid.NewGuid():N}");
+        try
+        {
+            var logger = SamLog.Create(directory, fileSizeLimitBytes: 512);
+            var payload = new string('x', 400);
+            logger.Information("{Payload}", payload);
+            logger.Information("{Payload}", payload);
+            logger.Information("{Payload}", payload);
+            (logger as IDisposable)?.Dispose();
+
+            Assert.True(Directory.GetFiles(directory, "sam-*.log").Length >= 2);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Cancellation_is_a_terminal_task_state()
     {
         using var cancellation = new CancellationTokenSource();
