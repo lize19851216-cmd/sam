@@ -28,10 +28,18 @@ public sealed class PluginLoader(PluginIsolationPolicy? isolationPolicy = null) 
                     if (t.IsAbstract || !typeof(ISamPlugin).IsAssignableFrom(t)) continue;
                     if (Activator.CreateInstance(t) is ISamPlugin p) { p.Initialize(); registry.Register(p); }
                 }
-            } catch (Exception exception) { failures.Add(new(file, exception.Message)); }
+            } catch (Exception exception) { failures.Add(new(file, DescribeFailure(exception))); }
         }
         var plugins = registry.Plugins.ToArray();
         _runtime = new PluginRuntime(plugins);
         return new(plugins, failures);
     }
+
+    private static string DescribeFailure(Exception exception) => exception switch
+    {
+        BadImageFormatException => "Plugin assembly is invalid.",
+        FileNotFoundException => "Plugin assembly or a dependency is unavailable.",
+        ReflectionTypeLoadException => "Plugin types could not be inspected.",
+        _ => "Plugin could not be loaded."
+    };
 }

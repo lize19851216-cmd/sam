@@ -525,6 +525,29 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_loader_sanitizes_invalid_assembly_diagnostics()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var assemblyPath = Path.Combine(directory, "sensitive-plugin.dll");
+        try
+        {
+            File.WriteAllText(assemblyPath, "not a managed assembly");
+            File.WriteAllText(Path.Combine(directory, PluginTrustPolicy.ManifestFileName), PluginTrustPolicy.CalculateHash(assemblyPath));
+
+            var report = new PluginLoader().LoadWithReport(directory);
+
+            var failure = Assert.Single(report.Failures);
+            Assert.Equal("Plugin assembly is invalid.", failure.Message);
+            Assert.DoesNotContain("sensitive", failure.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Sqlite_task_store_persists_concurrent_worker_writes()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
