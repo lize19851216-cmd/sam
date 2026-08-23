@@ -83,6 +83,24 @@ public static class SteamKitLogOnDetailsFactory
     }
 }
 
+/// <summary>
+/// Applies a user-entered Steam Guard code without retaining it. Steam uses
+/// separate protocol fields for email codes and mobile-authenticator codes;
+/// providing the same short-lived code in both fields lets the server consume
+/// the field appropriate for the account's configured guard method.
+/// </summary>
+public static class SteamKitGuardCodeConfigurator
+{
+    public static void Apply(SteamUser.LogOnDetails details, string code)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+
+        details.AuthCode = code;
+        details.TwoFactorCode = code;
+    }
+}
+
 /// <summary>Maps SteamKit protocol responses to SAM's credential-free transport result.</summary>
 public static class SteamKitAuthenticationResultMapper
 {

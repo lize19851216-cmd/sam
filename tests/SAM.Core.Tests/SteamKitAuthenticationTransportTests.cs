@@ -53,6 +53,17 @@ public sealed class SteamKitAuthenticationTransportTests
     }
 
     [Fact]
+    public void Steam_Guard_code_supports_both_email_and_mobile_authenticator_accounts()
+    {
+        var details = new SteamUser.LogOnDetails();
+
+        SteamKitGuardCodeConfigurator.Apply(details, "123456");
+
+        Assert.Equal("123456", details.AuthCode);
+        Assert.Equal("123456", details.TwoFactorCode);
+    }
+
+    [Fact]
     public void Factory_requires_explicit_SteamKit_enablement_for_an_external_broker()
     {
         var factory = new SteamClientFactory();
