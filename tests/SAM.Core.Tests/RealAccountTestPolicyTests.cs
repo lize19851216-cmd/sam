@@ -6,6 +6,15 @@ namespace SAM.Core.Tests;
 public sealed class RealAccountTestPolicyTests
 {
     [Fact]
+    public void Interactive_login_policy_allows_manual_entry_and_does_not_repeat_authentication()
+    {
+        var policy = RealAccountTestPolicy.CreateInteractiveLoginRetryPolicy();
+
+        Assert.Equal(0, policy.MaxRetries);
+        Assert.Equal(TimeSpan.FromMinutes(3.5), policy.EffectiveTimeout);
+    }
+
+    [Fact]
     public void Validate_account_name_trims_a_single_non_simulated_account()
     {
         Assert.Equal("user_owned_account", RealAccountTestPolicy.ValidateAccountName("  user_owned_account  "));

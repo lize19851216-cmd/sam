@@ -7,6 +7,13 @@ namespace SAM.Core.Tests;
 public sealed class NamedPipeSteamAuthenticationBrokerTests
 {
     [Fact]
+    public void Default_timeout_allows_manual_authentication_without_extending_credential_free_probes()
+    {
+        Assert.Equal(TimeSpan.FromMinutes(3), NamedPipeSteamAuthenticationBroker.DefaultAuthenticationTimeout);
+        Assert.Equal(TimeSpan.FromSeconds(2), NamedPipeSteamAuthenticationBroker.DefaultProbeTimeout);
+    }
+
+    [Fact]
     public async Task Broker_round_trip_exchanges_only_a_secret_free_request_and_sanitized_response()
     {
         var pipeName = $"sam-steam-broker-{Guid.NewGuid():N}";

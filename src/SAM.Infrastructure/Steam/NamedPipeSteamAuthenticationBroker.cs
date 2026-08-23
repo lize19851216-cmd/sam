@@ -31,16 +31,19 @@ public static class SteamAuthenticationBrokerEndpoint
 public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTransport
 {
     private const int MaximumMessageSize = 4_096;
-    private static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan DefaultAuthenticationTimeout = TimeSpan.FromMinutes(3);
+    public static readonly TimeSpan DefaultProbeTimeout = TimeSpan.FromSeconds(2);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly string _pipeName;
-    private readonly TimeSpan _operationTimeout;
+    private readonly TimeSpan _authenticationTimeout;
+    private readonly TimeSpan _probeTimeout;
 
     public NamedPipeSteamAuthenticationBroker(string pipeName, TimeSpan? operationTimeout = null)
     {
         _pipeName = SteamAuthenticationBrokerEndpoint.ValidatePipeName(pipeName);
-        _operationTimeout = operationTimeout ?? DefaultOperationTimeout;
-        if (_operationTimeout <= TimeSpan.Zero)
+        _authenticationTimeout = operationTimeout ?? DefaultAuthenticationTimeout;
+        _probeTimeout = operationTimeout ?? DefaultProbeTimeout;
+        if (_authenticationTimeout <= TimeSpan.Zero || _probeTimeout <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(operationTimeout), "The broker operation timeout must be positive.");
     }
 
@@ -51,7 +54,7 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
 
         try
         {
-            return ToSanitizedResult(await ExchangeAsync(request, cancellationToken).ConfigureAwait(false));
+            return ToSanitizedResult(await ExchangeAsync(request, _authenticationTimeout, cancellationToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -68,7 +71,7 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
     {
         try
         {
-            await ExchangeAsync(new SteamAuthenticationBrokerRequest(string.Empty, SteamAuthenticationBrokerRequestKind.Probe), cancellationToken).ConfigureAwait(false);
+            await ExchangeAsync(new SteamAuthenticationBrokerRequest(string.Empty, SteamAuthenticationBrokerRequestKind.Probe), _probeTimeout, cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -104,11 +107,11 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
         _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
     };
 
-    private async Task<SteamAuthenticationBrokerResponse> ExchangeAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)
+    private async Task<SteamAuthenticationBrokerResponse> ExchangeAsync(SteamAuthenticationBrokerRequest request, TimeSpan operationTimeout, CancellationToken cancellationToken)
     {
         request.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(_operationTimeout);
+        timeout.CancelAfter(operationTimeout);
         await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, SteamAuthenticationBrokerEndpoint.LocalUserPipeOptions);
         await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
         await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), timeout.Token).ConfigureAwait(false);
