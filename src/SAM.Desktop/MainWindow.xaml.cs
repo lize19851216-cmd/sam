@@ -114,6 +114,82 @@ public partial class MainWindow : Window
     private async void Generate100_Click(object sender, RoutedEventArgs e) => await GenerateAsync(100);
     private async void Generate500_Click(object sender, RoutedEventArgs e) => await GenerateAsync(500);
 
+    private async void DeleteSelectedAccount_Click(object sender, RoutedEventArgs e)
+    {
+        if (AccountsGrid.SelectedItem is not Account selectedAccount)
+        {
+            StatusText.Text = "请先在账号列表中选中要删除的账号";
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            $"将从本机账号列表删除“{selectedAccount.AccountName}”。Task Center 历史不会被删除。是否继续？",
+            "确认删除账号",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes) return;
+
+        var remainingAccounts = _accounts.Where(account => account.Id != selectedAccount.Id).ToArray();
+        await ReplaceAccountSnapshotAsync(
+            remainingAccounts,
+            $"已删除账号：{selectedAccount.AccountName}",
+            "Deleted one account from the local account snapshot");
+    }
+
+    private async void ClearAccounts_Click(object sender, RoutedEventArgs e)
+    {
+        if (_accounts.Count == 0)
+        {
+            StatusText.Text = "账号列表已经为空";
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            $"将清空本机保存的 {_accounts.Count} 个账号。Task Center 历史不会被删除。是否继续？",
+            "确认清空账号列表",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes) return;
+
+        await ReplaceAccountSnapshotAsync([], "已清空本机账号列表", "Cleared the local account snapshot");
+    }
+
+    private async Task ReplaceAccountSnapshotAsync(
+        IReadOnlyCollection<Account> accounts,
+        string successMessage,
+        string logMessage)
+    {
+        var operationLease = _accountOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "已有账号操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            SetAccountOperationControls(isEnabled: false);
+            try
+            {
+                await _database.ReplaceAccountsAsync(accounts);
+                _accounts.Clear();
+                foreach (var account in accounts) _accounts.Add(account);
+                AccountsGrid.SelectedItem = null;
+                if (accounts.Count == 0) RealAccountNameBox.Clear();
+                else if (RealAccountTestPolicy.TryGetSingleExternalTestAccountName(accounts, out var accountName))
+                    RealAccountNameBox.Text = accountName;
+                StatusText.Text = successMessage;
+                _log.Information("{AccountSnapshotOperation} ({AccountCount} accounts remain)", logMessage, accounts.Count);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to replace the local account snapshot");
+                StatusText.Text = $"账号列表更新错误：{exception.Message}";
+            }
+            finally { SetAccountOperationControls(isEnabled: true); }
+        }
+    }
+
     private void ClientModeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (BrokerPipeNameBox is null || TestBrokerButton is null || RealAccountNameBox is null) return;
@@ -327,6 +403,8 @@ public partial class MainWindow : Window
     {
         Generate100Button.IsEnabled = isEnabled;
         Generate500Button.IsEnabled = isEnabled;
+        DeleteSelectedAccountButton.IsEnabled = isEnabled;
+        ClearAccountsButton.IsEnabled = isEnabled;
         LoginButton.IsEnabled = isEnabled;
         ConcurrencyBox.IsEnabled = isEnabled;
         ClientModeBox.IsEnabled = isEnabled;

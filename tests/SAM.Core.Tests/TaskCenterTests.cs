@@ -253,6 +253,26 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_can_atomically_clear_an_account_snapshot()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            await database.ReplaceAccountsAsync([
+                new SAM.Core.Account { AccountName = "mock_0001" },
+                new SAM.Core.Account { AccountName = "mock_0002" }
+            ]);
+
+            await database.ReplaceAccountsAsync([]);
+
+            Assert.Empty(await database.GetAccountsAsync());
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_persists_concurrent_account_updates()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

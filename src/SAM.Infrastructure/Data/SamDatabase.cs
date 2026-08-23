@@ -47,7 +47,7 @@ public sealed class SamDatabase {
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>Atomically replaces the persisted simulated-account snapshot.</summary>
+    /// <summary>Atomically replaces the persisted account snapshot.</summary>
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
         var snapshot = accounts.ToArray();

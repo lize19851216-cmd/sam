@@ -13,6 +13,8 @@
        <TextBox x:Name="ConcurrencyBox" Text="10" Width="55" Padding="5"/>
        <Button x:Name="Generate100Button" Content="生成100账号" Click="Generate100_Click" Margin="20,0,5,0" Padding="12,5"/>
        <Button x:Name="Generate500Button" Content="生成500账号" Click="Generate500_Click" Margin="5,0" Padding="12,5"/>
+       <Button x:Name="DeleteSelectedAccountButton" Content="删除选中账号" Click="DeleteSelectedAccount_Click" Margin="5,0" Padding="12,5"/>
+       <Button x:Name="ClearAccountsButton" Content="清空账号列表" Click="ClearAccounts_Click" Margin="5,0" Padding="12,5"/>
        <Button x:Name="LoginButton" Content="批量模拟登录" Click="Login_Click" Margin="5,0" Padding="12,5"/>
        <Button x:Name="CancelButton" Content="取消任务" Click="Cancel_Click" Margin="5,0" Padding="12,5" IsEnabled="False"/>
        <Button Content="加载插件" Click="LoadPlugins_Click" Margin="5,0" Padding="12,5"/>
