@@ -45,9 +45,10 @@ internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamLogOnConfigu
 {
     public void Configure(SteamUser.LogOnDetails logOnDetails)
     {
-        Console.Write($"Password for {logOnDetails.Username}: ");
+        Console.WriteLine("Enter credentials in this window only. They are masked, kept only in memory, and never written to disk.");
+        Console.Write($"Password for {logOnDetails.Username} (type now, then press Enter): ");
         logOnDetails.Password = ReadSecret();
-        Console.Write("Steam Guard one-time code (press Enter if none): ");
+        Console.Write("Steam Guard one-time code (type now, or press Enter if none): ");
         var code = ReadSecret();
         if (!string.IsNullOrWhiteSpace(code)) logOnDetails.TwoFactorCode = code;
         logOnDetails.ShouldRememberPassword = false;
@@ -60,11 +61,20 @@ internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamLogOnConfigu
         {
             if (key.Key == ConsoleKey.Backspace)
             {
-                if (value.Count > 0) value.RemoveAt(value.Count - 1);
+                if (value.Count > 0)
+                {
+                    value.RemoveAt(value.Count - 1);
+                    Console.Write("\b \b");
+                }
+
                 continue;
             }
 
-            if (!char.IsControl(key.KeyChar)) value.Add(key.KeyChar);
+            if (!char.IsControl(key.KeyChar))
+            {
+                value.Add(key.KeyChar);
+                Console.Write('*');
+            }
         }
 
         Console.WriteLine();

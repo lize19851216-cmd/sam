@@ -93,12 +93,14 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] Reliability: structured logs roll at 10 MiB in addition to the existing 14-file retention limit
 - [x] Task Center UI defers a requested history refresh until an active history operation completes
 - [x] M3: manual external-broker authentication allows a three-minute credential interaction while probes remain short and retries are disabled
+- [x] M3: local authentication broker visibly masks manual password and Steam Guard input, with explicit in-console guidance and no credential persistence
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
 - `dotnet test SAM.slnx --no-build` — passed, 80/80 tests
+- Local broker masked-input prompt build and test verification — passed; credentials remain console-only and are not persisted
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
