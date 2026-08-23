@@ -6,6 +6,19 @@ namespace SAM.Core.Tests;
 public sealed class WorkerPoolTests
 {
     [Fact]
+    public void Exclusive_operation_gate_allows_one_operation_until_its_lease_is_released()
+    {
+        var gate = new ExclusiveOperationGate();
+        var firstLease = gate.TryEnter();
+
+        Assert.NotNull(firstLease);
+        Assert.Null(gate.TryEnter());
+
+        firstLease.Dispose();
+        Assert.NotNull(gate.TryEnter());
+    }
+
+    [Fact]
     public async Task Batch_completes_all_accounts()
     {
         var accounts = Enumerable.Range(1, 100)
