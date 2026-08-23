@@ -114,9 +114,10 @@ public partial class MainWindow : Window
 
     private void ClientModeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (BrokerPipeNameBox is null || TestBrokerButton is null) return;
+        if (BrokerPipeNameBox is null || TestBrokerButton is null || RealAccountNameBox is null) return;
         BrokerPipeNameBox.IsEnabled = ClientModeBox.SelectedIndex == 1 && _loginCancellation is null;
         TestBrokerButton.IsEnabled = ClientModeBox.SelectedIndex == 1 && _loginCancellation is null;
+        SetSingleAccountTestControls(ClientModeBox.SelectedIndex == 1 && _externalBrokerEnabled && _loginCancellation is null);
     }
 
     private void ApplyClientMode_Click(object sender, RoutedEventArgs e)
@@ -134,8 +135,10 @@ public partial class MainWindow : Window
             _pool = new WorkerPool(factory.Create(_steamClientOptions));
             _externalBrokerEnabled = false;
             EnvironmentText.Text = "   模拟环境";
+            LoginButton.Content = "批量模拟登录";
             BrokerPipeNameBox.IsEnabled = false;
             TestBrokerButton.IsEnabled = false;
+            SetSingleAccountTestControls(isEnabled: false);
             StatusText.Text = "已应用模拟客户端";
             _log.Information("Desktop switched to the safe fake Steam client");
             return;
@@ -159,8 +162,10 @@ public partial class MainWindow : Window
             _pool = new WorkerPool(factory.CreateWithExternalBroker(_steamClientOptions, pipeName));
             _externalBrokerEnabled = true;
             EnvironmentText.Text = "   外部认证代理";
+            LoginButton.Content = "单账号登录测试";
             BrokerPipeNameBox.IsEnabled = true;
             TestBrokerButton.IsEnabled = true;
+            SetSingleAccountTestControls(isEnabled: true);
             StatusText.Text = $"已应用外部认证代理：{pipeName}";
             _log.Information("Desktop enabled the explicit external Steam authentication broker with pipe {BrokerPipeName}", pipeName);
         }
@@ -170,6 +175,58 @@ public partial class MainWindow : Window
             BrokerPipeNameBox.IsEnabled = _externalBrokerEnabled;
             StatusText.Text = "外部认证代理设置无效，现有认证客户端未改变";
             _log.Warning(exception, "External Steam authentication broker configuration was rejected");
+        }
+    }
+
+    private async void SaveSingleAccount_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_externalBrokerEnabled || _loginCancellation is not null)
+        {
+            StatusText.Text = "请先应用外部认证代理设置";
+            return;
+        }
+
+        string accountName;
+        try { accountName = RealAccountTestPolicy.ValidateAccountName(RealAccountNameBox.Text); }
+        catch (ArgumentException exception)
+        {
+            StatusText.Text = $"账号名无效：{exception.Message}";
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            "这会替换本机保存的账号列表，仅保留一个用于外部认证代理测试的账号名。SAM 不会接收或保存密码、Cookie、令牌或 Steam Guard Secret。是否继续？",
+            "确认单账号真实测试",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes) return;
+
+        var operationLease = _accountOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "已有账号操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            SetAccountOperationControls(isEnabled: false);
+            try
+            {
+                var account = new Account { AccountName = accountName };
+                await _database.ReplaceAccountsAsync([account]);
+                _accounts.Clear();
+                _accounts.Add(account);
+                ConcurrencyBox.Text = "1";
+                StatusText.Text = "已保存单账号测试；先测试认证代理连接，再点击“单账号登录测试”";
+                _log.Information("Replaced local account snapshot with one external-broker test account");
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to save the external-broker test account");
+                StatusText.Text = $"保存错误：{exception.Message}";
+            }
+            finally { SetAccountOperationControls(isEnabled: true); }
         }
     }
 
@@ -210,11 +267,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_externalBrokerEnabled && _accounts.Any(account => account.AccountName.StartsWith("mock_", StringComparison.OrdinalIgnoreCase)))
+        if (_externalBrokerEnabled)
         {
-            StatusText.Text = "外部认证代理不能用于 mock 模拟账号；请使用“测试代理连接”验证代理";
-            _log.Warning("Blocked external authentication broker login for simulated mock accounts");
-            return;
+            try { RealAccountTestPolicy.EnsureSingleExternalTestAccount(_accounts); }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                StatusText.Text = "外部认证代理仅允许一个已明确保存的非 mock 账号；请使用“保存单账号测试”";
+                _log.Warning(exception, "Blocked external authentication broker login because the account selection was unsafe");
+                return;
+            }
         }
 
         var loginLease = _accountOperationGate.TryEnter();
@@ -227,9 +288,9 @@ public partial class MainWindow : Window
         using (loginLease)
         {
             if (!int.TryParse(ConcurrencyBox.Text, out var concurrency)) concurrency = WorkerPool.MaximumConcurrency;
-            concurrency = WorkerPool.NormalizeConcurrency(concurrency);
+            concurrency = _externalBrokerEnabled ? 1 : WorkerPool.NormalizeConcurrency(concurrency);
             ConcurrencyBox.Text = concurrency.ToString();
-            if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号"; return; }
+            if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号或保存单账号测试"; return; }
             _loginCancellation = new CancellationTokenSource();
             SetAccountOperationControls(isEnabled: false);
             CancelButton.IsEnabled = true;
@@ -270,6 +331,13 @@ public partial class MainWindow : Window
         ApplyClientModeButton.IsEnabled = isEnabled;
         BrokerPipeNameBox.IsEnabled = isEnabled && ClientModeBox.SelectedIndex == 1;
         TestBrokerButton.IsEnabled = isEnabled && ClientModeBox.SelectedIndex == 1;
+        SetSingleAccountTestControls(isEnabled && ClientModeBox.SelectedIndex == 1 && _externalBrokerEnabled);
+    }
+
+    private void SetSingleAccountTestControls(bool isEnabled)
+    {
+        RealAccountNameBox.IsEnabled = isEnabled;
+        SaveSingleAccountButton.IsEnabled = isEnabled;
     }
 
     private async Task RefreshTasksAsync()

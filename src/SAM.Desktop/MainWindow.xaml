@@ -1,13 +1,13 @@
 ﻿<Window x:Class="SAM.Desktop.MainWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="SAM - Steam Account Manager M1" Height="720" Width="1180"
+ Title="SAM - Steam Account Manager M3" Height="720" Width="1180"
  WindowStartupLocation="CenterScreen">
  <DockPanel Margin="12">
    <Border DockPanel.Dock="Top" Padding="12" Margin="0,0,0,10" BorderThickness="1" BorderBrush="Gray">
      <StackPanel>
      <StackPanel Orientation="Horizontal">
-       <TextBlock Text="SAM Milestone 1" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+       <TextBlock Text="SAM Milestone 3" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
        <TextBlock x:Name="EnvironmentText" Text="   模拟环境" VerticalAlignment="Center"/>
        <TextBlock Text="   并发:" VerticalAlignment="Center" Margin="30,0,4,0"/>
        <TextBox x:Name="ConcurrencyBox" Text="10" Width="55" Padding="5"/>
@@ -28,6 +28,12 @@
        <Button x:Name="ApplyClientModeButton" Content="应用认证设置" Click="ApplyClientMode_Click" Margin="6,0,0,0" Padding="10,4"/>
        <Button x:Name="TestBrokerButton" Content="测试代理连接" Click="TestBroker_Click" Margin="6,0,0,0" Padding="10,4" IsEnabled="False"/>
        <TextBlock Text="仅连接当前用户的本地代理；SAM 不接收或存储凭据" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
+     </StackPanel>
+     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+       <TextBlock Text="单账号真实测试:" VerticalAlignment="Center"/>
+       <TextBox x:Name="RealAccountNameBox" Width="180" Padding="5" Margin="6,0,0,0" IsEnabled="False"/>
+       <Button x:Name="SaveSingleAccountButton" Content="保存单账号测试" Click="SaveSingleAccount_Click" Margin="6,0,0,0" Padding="10,4" IsEnabled="False"/>
+       <TextBlock Text="仅保存账号名并替换本地模拟列表；密码与 Steam Guard 仅在本地 Broker 窗口输入" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
      </StackPanel>
      </StackPanel>
    </Border>

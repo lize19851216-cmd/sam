@@ -1,6 +1,6 @@
 ﻿# SAM Development Status
 ## Current phase
-Milestone 1 — safe SteamKit transport foundation
+Milestone 3 — explicit single-account external-broker test path
 
 ## Completed
 - [x] .NET 10 / WPF
@@ -72,12 +72,15 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: local release publishing reuses the script's runtime-aware restore instead of restoring dependencies again
 - [x] M2: local release publishing removes only its previous output folders before checksum generation, preventing stale-file manifests
 - [x] M2: CI retains a compact TRX test-results artifact even when a release test run fails
+- [x] M3: desktop offers an explicitly confirmed single-account external-broker test entry that stores only an account name and replaces the local mock snapshot
+- [x] M3: external-broker login requires exactly one non-mock account and forces concurrency to 1
+- [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 60/60 tests
-- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 60/60 tests
+- `dotnet test SAM.slnx --no-build` — passed, 68/68 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 68/68 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
