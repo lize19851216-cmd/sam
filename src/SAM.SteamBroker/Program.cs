@@ -1,5 +1,4 @@
 using SAM.Infrastructure.Steam;
-using SteamKit2;
 using SteamKit2.Authentication;
 using System.Runtime.InteropServices;
 
@@ -49,8 +48,10 @@ internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamAuthSessionC
         Console.WriteLine("Enter credentials in this window only. They are masked, kept only in memory, and never written to disk.");
         Console.Write($"Password for {authSessionDetails.Username} (type now, then press Enter): ");
         authSessionDetails.Password = ReadSecret();
+        // The host-owned factory supplies the interactive authenticator and
+        // enforces non-persistence. This configurator may supply only the
+        // short-lived password for the current request.
         authSessionDetails.IsPersistentSession = false;
-        authSessionDetails.Authenticator = new UserConsoleAuthenticator();
     }
 
     private static string ReadSecret()
