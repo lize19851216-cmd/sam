@@ -15,10 +15,10 @@ public sealed class SteamAuthenticationBrokerHostTests
         var transport = new StubTransport(new SteamAuthenticationResult(SteamAuthenticationStatus.Online, "private detail", "76561190000000001", "mock"));
         var server = new SteamAuthenticationBrokerHost(transport).ServeOnceAsync(pipeName, timeout.Token);
 
-        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("mock_0001", timeout.Token);
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("test_account_0001", timeout.Token);
         await server;
 
-        Assert.Equal("mock_0001", transport.AccountName);
+        Assert.Equal("test_account_0001", transport.AccountName);
         Assert.Equal(SteamAuthenticationStatus.Online, result.Status);
         Assert.Equal("Steam authentication succeeded.", result.Message);
         Assert.DoesNotContain("private detail", result.Message);
@@ -31,7 +31,7 @@ public sealed class SteamAuthenticationBrokerHostTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var server = new SteamAuthenticationBrokerHost(new ThrowingTransport()).ServeOnceAsync(pipeName, timeout.Token);
 
-        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("mock_0001", timeout.Token);
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("test_account_0001", timeout.Token);
         await server;
 
         Assert.Equal(SteamAuthenticationStatus.Failed, result.Status);

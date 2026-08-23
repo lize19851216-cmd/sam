@@ -26,6 +26,8 @@ public sealed record SteamAuthenticationBrokerRequest(string AccountName, SteamA
         ArgumentException.ThrowIfNullOrWhiteSpace(AccountName);
         if (AccountName.Length > MaximumAccountNameLength || AccountName.Any(char.IsControl))
             throw new ArgumentException("The account name is invalid.", nameof(AccountName));
+        if (AccountName.StartsWith("mock_", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Simulated accounts cannot use the external authentication broker.", nameof(AccountName));
     }
 }
 
