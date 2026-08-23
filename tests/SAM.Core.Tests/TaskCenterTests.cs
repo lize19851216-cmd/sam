@@ -273,6 +273,33 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_rejects_invalid_snapshot_without_losing_saved_accounts()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var savedAccount = new SAM.Core.Account { AccountName = "mock_saved" };
+            await database.ReplaceAccountsAsync([savedAccount]);
+
+            var duplicateId = Guid.NewGuid();
+            var invalidSnapshot = new[]
+            {
+                new SAM.Core.Account { Id = duplicateId, AccountName = "mock_duplicate_1" },
+                new SAM.Core.Account { Id = duplicateId, AccountName = "mock_duplicate_2" }
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(() => database.ReplaceAccountsAsync(invalidSnapshot));
+
+            var restored = Assert.Single(await database.GetAccountsAsync());
+            Assert.Equal(savedAccount.Id, restored.Id);
+            Assert.Equal("mock_saved", restored.AccountName);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_persists_concurrent_account_updates()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
