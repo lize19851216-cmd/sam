@@ -79,6 +79,7 @@ public sealed class SteamKitAuthenticationTransportTests
     {
         Assert.Throws<InvalidOperationException>(() => SteamKitAuthSessionDetailsFactory.Create("account_0001", new AuthSessionAccountChangingConfigurator()));
         Assert.Throws<InvalidOperationException>(() => SteamKitAuthSessionDetailsFactory.Create("account_0001", new PersistentAuthSessionConfigurator()));
+        Assert.Throws<InvalidOperationException>(() => SteamKitAuthSessionDetailsFactory.Create("account_0001", new AuthenticatorChangingConfigurator()));
     }
 
     [Fact]
@@ -177,5 +178,10 @@ public sealed class SteamKitAuthenticationTransportTests
     private sealed class PersistentAuthSessionConfigurator : IExternalSteamAuthSessionConfigurator
     {
         public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.IsPersistentSession = true;
+    }
+
+    private sealed class AuthenticatorChangingConfigurator : IExternalSteamAuthSessionConfigurator
+    {
+        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.Authenticator = null!;
     }
 }

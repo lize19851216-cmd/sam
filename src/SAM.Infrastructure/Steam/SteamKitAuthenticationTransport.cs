@@ -124,11 +124,12 @@ public static class SteamKitAuthSessionDetailsFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(accountName);
         ArgumentNullException.ThrowIfNull(configurator);
 
+        var authenticator = new UserConsoleAuthenticator();
         var details = new AuthSessionDetails
         {
             Username = accountName,
             IsPersistentSession = false,
-            Authenticator = new UserConsoleAuthenticator()
+            Authenticator = authenticator
         };
         configurator.Configure(details);
 
@@ -136,6 +137,8 @@ public static class SteamKitAuthSessionDetailsFactory
             throw new InvalidOperationException("The external Steam credential source cannot change the account name.");
         if (details.IsPersistentSession)
             throw new InvalidOperationException("The external Steam credential source cannot request persistence.");
+        if (!ReferenceEquals(details.Authenticator, authenticator))
+            throw new InvalidOperationException("The external Steam credential source cannot replace the interactive authenticator.");
 
         return details;
     }
