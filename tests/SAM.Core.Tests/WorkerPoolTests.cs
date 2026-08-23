@@ -78,7 +78,7 @@ public sealed class WorkerPoolTests
             new Account { AccountName = "mock_0002" }
         };
 
-        await new WorkerPool(new FakeSteamClient()).RunLoginBatchAsync(
+        await new WorkerPool(new AlwaysOnlineSteamClient()).RunLoginBatchAsync(
             accounts,
             concurrency: 1,
             taskCenter: new SamTaskCenter(new FailFirstSaveTaskStore()));
@@ -124,6 +124,12 @@ public sealed class WorkerPoolTests
             return Task.CompletedTask;
         }
         public Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<SamTaskRecord>>([]);
+    }
+
+    private sealed class AlwaysOnlineSteamClient : ISteamClientService
+    {
+        public Task<LoginResult> LoginAsync(Account account, CancellationToken cancellationToken) =>
+            Task.FromResult(new LoginResult(AccountStatus.Online, "success"));
     }
 
     private sealed class FailFirstSaveTaskStore : ISamTaskStore

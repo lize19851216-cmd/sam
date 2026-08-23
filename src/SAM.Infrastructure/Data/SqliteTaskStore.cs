@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using SAM.Core.Tasks;
+using System.Globalization;
 
 namespace SAM.Infrastructure.Data;
 
@@ -66,6 +67,44 @@ public sealed class SqliteTaskStore : ISamTaskStore
     public async Task<IReadOnlyList<SamTaskRecord>> GetRecentAsync(int limit, CancellationToken cancellationToken = default)
     {
         return await GetPageAsync(0, limit, cancellationToken);
+    }
+
+    /// <summary>Removes only terminal task history completed before the retention cutoff.</summary>
+    public async Task<int> PruneTerminalTasksAsync(DateTimeOffset completedBefore, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        var expiredIds = new List<string>();
+        await using (var query = connection.CreateCommand())
+        {
+            query.CommandText = """
+                SELECT Id, CompletedAt FROM Tasks
+                WHERE Status IN ($succeeded, $failed, $cancelled)
+                  AND CompletedAt IS NOT NULL;
+                """;
+            query.Parameters.AddWithValue("$succeeded", (int)SamTaskStatus.Succeeded);
+            query.Parameters.AddWithValue("$failed", (int)SamTaskStatus.Failed);
+            query.Parameters.AddWithValue("$cancelled", (int)SamTaskStatus.Cancelled);
+            await using var reader = await query.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var completedAt = DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                if (completedAt < completedBefore) expiredIds.Add(reader.GetString(0));
+            }
+        }
+
+        if (expiredIds.Count == 0) return 0;
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        foreach (var id in expiredIds)
+        {
+            await using var delete = connection.CreateCommand();
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM Tasks WHERE Id = $id;";
+            delete.Parameters.AddWithValue("$id", id);
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return expiredIds.Count;
     }
 
     public async Task<IReadOnlyList<SamTaskRecord>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
