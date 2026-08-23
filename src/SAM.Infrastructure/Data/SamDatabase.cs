@@ -38,7 +38,7 @@ public sealed class SamDatabase {
     public Task SaveAccountAsync(Account a) => SaveAccountAsync(a, CancellationToken.None);
 
     public async Task SaveAccountAsync(Account a, CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(a);
+        ValidateAccount(a);
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync(cancellationToken);
         await using var cmd = c.CreateCommand();
@@ -61,6 +61,7 @@ public sealed class SamDatabase {
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
         var snapshot = accounts.ToArray();
+        foreach (var account in snapshot) ValidateAccount(account);
         if (snapshot.Select(account => account.Id).Distinct().Count() != snapshot.Length)
             throw new ArgumentException("An account snapshot cannot contain duplicate account IDs.", nameof(accounts));
         if (snapshot.Select(account => account.AccountName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != snapshot.Length)
@@ -105,5 +106,10 @@ public sealed class SamDatabase {
         command.Parameters.AddWithValue("$st", (int)account.Status);
         command.Parameters.AddWithValue("$r", account.RetryCount);
         command.Parameters.AddWithValue("$m", account.LastMessage);
+    }
+
+    private static void ValidateAccount(Account account) {
+        ArgumentNullException.ThrowIfNull(account);
+        ArgumentException.ThrowIfNullOrWhiteSpace(account.AccountName);
     }
 }
