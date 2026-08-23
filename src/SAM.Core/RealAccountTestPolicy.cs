@@ -34,4 +34,19 @@ public static class RealAccountTestPolicy
 
         ValidateAccountName(snapshot.Single().AccountName);
     }
+
+    public static bool TryGetSingleExternalTestAccountName(IEnumerable<Account> accounts, out string accountName)
+    {
+        accountName = string.Empty;
+        try
+        {
+            ArgumentNullException.ThrowIfNull(accounts);
+            var snapshot = accounts as ICollection<Account> ?? accounts.ToArray();
+            EnsureSingleExternalTestAccount(snapshot);
+            accountName = ValidateAccountName(snapshot.Single().AccountName);
+            return true;
+        }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
+    }
 }

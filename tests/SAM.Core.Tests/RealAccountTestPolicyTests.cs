@@ -48,4 +48,17 @@ public sealed class RealAccountTestPolicyTests
         ]));
         Assert.Throws<ArgumentException>(() => RealAccountTestPolicy.EnsureSingleExternalTestAccount([new Account { AccountName = "mock_0001" }]));
     }
+
+    [Fact]
+    public void Persisted_single_external_test_account_can_be_restored_without_revalidating_in_the_ui()
+    {
+        var restored = RealAccountTestPolicy.TryGetSingleExternalTestAccountName(
+            [new Account { AccountName = " user_owned_account " }],
+            out var accountName);
+
+        Assert.True(restored);
+        Assert.Equal("user_owned_account", accountName);
+        Assert.False(RealAccountTestPolicy.TryGetSingleExternalTestAccountName([], out _));
+        Assert.False(RealAccountTestPolicy.TryGetSingleExternalTestAccountName([new Account { AccountName = "mock_0001" }], out _));
+    }
 }

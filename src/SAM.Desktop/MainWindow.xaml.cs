@@ -62,6 +62,8 @@ public partial class MainWindow : Window
             await _database.InitializeAsync();
             await _taskStore.InitializeAsync();
             foreach (var account in await _database.GetAccountsAsync()) _accounts.Add(account);
+            if (RealAccountTestPolicy.TryGetSingleExternalTestAccountName(_accounts, out var accountName))
+                RealAccountNameBox.Text = accountName;
             await RefreshTasksAsync();
             var clientMode = _steamClientOptions.EffectiveMode == SteamClientMode.Fake ? "模拟客户端" : "SteamKit 客户端";
             EnvironmentText.Text = "   模拟环境";
