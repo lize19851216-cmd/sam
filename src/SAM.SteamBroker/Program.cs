@@ -50,7 +50,7 @@ internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamLogOnConfigu
         logOnDetails.Password = ReadSecret();
         Console.Write("Steam Guard one-time code (type now, or press Enter if none): ");
         var code = ReadSecret();
-        if (!string.IsNullOrWhiteSpace(code)) logOnDetails.TwoFactorCode = code;
+        if (!string.IsNullOrWhiteSpace(code)) SteamKitGuardCodeConfigurator.Apply(logOnDetails, code);
         logOnDetails.ShouldRememberPassword = false;
     }
 
