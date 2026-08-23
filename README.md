@@ -21,7 +21,7 @@ PowerShell:
 
 可以先用 `Get-FileHash` 对照 SHA-256 清单，再启动程序。
 
-也可以直接执行：
+也可以直接执行（会验证每个清单项，也会确认没有漏列的发布文件）：
 
 `pwsh -NoProfile -File .\scripts\verify-artifacts.ps1 -ArtifactDirectory .\artifacts`
 
