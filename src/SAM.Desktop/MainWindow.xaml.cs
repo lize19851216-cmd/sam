@@ -180,7 +180,32 @@ public partial class MainWindow : Window
             MessageBoxImage.Warning);
         if (confirmation != MessageBoxResult.Yes) return;
 
-        await ReplaceAccountSnapshotAsync([], "已清空本机账号列表", "Cleared the local account snapshot");
+        var operationLease = _accountOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "已有账号操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            SetAccountOperationControls(isEnabled: false);
+            try
+            {
+                var clearedCount = await _database.ClearAccountsAsync();
+                _accounts.Clear();
+                AccountsGrid.SelectedItem = null;
+                RealAccountNameBox.Clear();
+                StatusText.Text = $"已清空本机账号列表：{clearedCount} 个账号";
+                _log.Information("Cleared {AccountCount} accounts from the local account snapshot", clearedCount);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to clear the local account snapshot");
+                StatusText.Text = $"清空账号列表错误：{exception.Message}";
+            }
+            finally { SetAccountOperationControls(isEnabled: true); }
+        }
     }
 
     private async Task ReplaceAccountSnapshotAsync(

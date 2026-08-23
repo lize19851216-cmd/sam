@@ -311,6 +311,26 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_clears_all_accounts_and_returns_the_deleted_count()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            await database.ReplaceAccountsAsync([
+                new SAM.Core.Account { AccountName = "mock_0001" },
+                new SAM.Core.Account { AccountName = "mock_0002" }
+            ]);
+
+            Assert.Equal(2, await database.ClearAccountsAsync());
+            Assert.Equal(0, await database.ClearAccountsAsync());
+            Assert.Empty(await database.GetAccountsAsync());
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_rejects_invalid_snapshot_without_losing_saved_accounts()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
