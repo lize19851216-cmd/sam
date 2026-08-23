@@ -88,6 +88,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] Data safety: desktop selected-account removal uses a targeted SQLite delete instead of rewriting the remaining snapshot
 - [x] Data safety: database writes reject blank account names before persistence
 - [x] Data safety: desktop account-list clearing uses a targeted SQLite clear operation with an audited deletion count
+- [x] Task Center UI serializes history loading and retention cleanup, with recoverable load-error handling
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)

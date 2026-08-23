@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<PluginDisplay> _plugins = [];
     private readonly PluginLoader _pluginLoader = new();
     private readonly ExclusiveOperationGate _accountOperationGate = new();
+    private readonly ExclusiveOperationGate _taskHistoryOperationGate = new();
     private SteamClientOptions _steamClientOptions = new();
     private WorkerPool _pool;
     private readonly SamDatabase _database;
@@ -476,12 +477,45 @@ public partial class MainWindow : Window
 
     private async Task RefreshTasksAsync()
     {
+        var operationLease = _taskHistoryOperationGate.TryEnter();
+        if (operationLease is null) return;
+
+        using (operationLease)
+        {
+            SetTaskHistoryControls(isEnabled: false);
+            try { await RefreshTasksCoreAsync(); }
+            finally { SetTaskHistoryControls(isEnabled: true); }
+        }
+    }
+
+    private async Task RefreshTasksCoreAsync()
+    {
         _tasks.Clear();
         _taskHistoryCursor = null;
         await LoadTaskHistoryPageAsync(reset: true);
     }
 
-    private async void LoadMoreTasks_Click(object sender, RoutedEventArgs e) => await LoadTaskHistoryPageAsync();
+    private async void LoadMoreTasks_Click(object sender, RoutedEventArgs e)
+    {
+        var operationLease = _taskHistoryOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "任务历史操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            SetTaskHistoryControls(isEnabled: false);
+            try { await LoadTaskHistoryPageAsync(); }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to load additional task history");
+                StatusText.Text = $"加载任务历史错误：{exception.Message}";
+            }
+            finally { SetTaskHistoryControls(isEnabled: true); }
+        }
+    }
 
     private async void PruneTaskHistory_Click(object sender, RoutedEventArgs e)
     {
@@ -492,30 +526,44 @@ public partial class MainWindow : Window
             MessageBoxImage.Warning);
         if (confirmation != MessageBoxResult.Yes) return;
 
-        PruneTaskHistoryButton.IsEnabled = false;
-        try
+        var operationLease = _taskHistoryOperationGate.TryEnter();
+        if (operationLease is null)
         {
-            var deleted = await _taskStore.PruneTerminalTasksAsync(DateTimeOffset.UtcNow.AddDays(-TaskHistoryRetentionDays));
-            await RefreshTasksAsync();
-            StatusText.Text = $"已清理 {deleted} 条过期终态任务历史";
-            _log.Information("Pruned {TaskCount} expired terminal task history records", deleted);
+            StatusText.Text = "任务历史操作正在运行";
+            return;
         }
-        catch (Exception exception)
+
+        using (operationLease)
         {
-            _log.Error(exception, "Failed to prune terminal task history");
-            StatusText.Text = $"清理任务历史错误：{exception.Message}";
+            SetTaskHistoryControls(isEnabled: false);
+            try
+            {
+                var deleted = await _taskStore.PruneTerminalTasksAsync(DateTimeOffset.UtcNow.AddDays(-TaskHistoryRetentionDays));
+                await RefreshTasksCoreAsync();
+                StatusText.Text = $"已清理 {deleted} 条过期终态任务历史";
+                _log.Information("Pruned {TaskCount} expired terminal task history records", deleted);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to prune terminal task history");
+                StatusText.Text = $"清理任务历史错误：{exception.Message}";
+            }
+            finally { SetTaskHistoryControls(isEnabled: true); }
         }
-        finally { PruneTaskHistoryButton.IsEnabled = true; }
     }
 
     private async Task LoadTaskHistoryPageAsync(bool reset = false)
     {
-        LoadMoreTasksButton.IsEnabled = false;
         var page = await _taskStore.GetPageAfterAsync(_taskHistoryCursor, TaskHistoryPageSize);
         foreach (var task in page.Tasks.Where(task => _tasks.All(existing => existing.Id != task.Id))) _tasks.Add(task);
         _taskHistoryCursor = page.NextCursor;
-        LoadMoreTasksButton.IsEnabled = page.NextCursor is not null;
         if (!reset) _log.Information("Loaded {TaskCount} additional task history records using a stable cursor", page.Tasks.Count);
+    }
+
+    private void SetTaskHistoryControls(bool isEnabled)
+    {
+        PruneTaskHistoryButton.IsEnabled = isEnabled;
+        LoadMoreTasksButton.IsEnabled = isEnabled && _taskHistoryCursor is not null;
     }
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
