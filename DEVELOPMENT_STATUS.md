@@ -82,13 +82,14 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] Documentation: README describes release artifact locations and the credential-isolated single-account Broker test flow
 - [x] Release: generated SHA-256 manifests are verified before CI artifact upload
 - [x] Release: checksum verification rejects published files omitted from the manifest
+- [x] M3: desktop supports confirmed removal of a selected account or the complete local account snapshot without deleting Task Center history
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 70/70 tests
-- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 70/70 tests
+- `dotnet test SAM.slnx --no-build` — passed, 71/71 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 71/71 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
