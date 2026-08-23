@@ -129,11 +129,40 @@ public partial class MainWindow : Window
             MessageBoxImage.Warning);
         if (confirmation != MessageBoxResult.Yes) return;
 
-        var remainingAccounts = _accounts.Where(account => account.Id != selectedAccount.Id).ToArray();
-        await ReplaceAccountSnapshotAsync(
-            remainingAccounts,
-            $"已删除账号：{selectedAccount.AccountName}",
-            "Deleted one account from the local account snapshot");
+        var operationLease = _accountOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "已有账号操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            SetAccountOperationControls(isEnabled: false);
+            try
+            {
+                if (!await _database.DeleteAccountAsync(selectedAccount.Id))
+                {
+                    StatusText.Text = "账号已不在本机列表中";
+                    return;
+                }
+
+                _accounts.Remove(selectedAccount);
+                AccountsGrid.SelectedItem = null;
+                if (!RealAccountTestPolicy.TryGetSingleExternalTestAccountName(_accounts, out var accountName))
+                    RealAccountNameBox.Clear();
+                else
+                    RealAccountNameBox.Text = accountName;
+                StatusText.Text = $"已删除账号：{selectedAccount.AccountName}";
+                _log.Information("Deleted one account from the local account snapshot ({AccountCount} accounts remain)", _accounts.Count);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to delete one account from the local account snapshot");
+                StatusText.Text = $"删除账号错误：{exception.Message}";
+            }
+            finally { SetAccountOperationControls(isEnabled: true); }
+        }
     }
 
     private async void ClearAccounts_Click(object sender, RoutedEventArgs e)
