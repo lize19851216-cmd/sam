@@ -29,6 +29,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Desktop UI hash copy flow for plugin trust review
 - [ ] Plugin process isolation policy for untrusted third-party code
 - [x] Restricted metadata-only IPC contract for a future isolated plugin host
+- [x] Local named-pipe metadata transport for the isolated plugin host contract
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
@@ -39,4 +40,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-22)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 19/19 tests
+- `dotnet test SAM.slnx --no-build` — passed, 21/21 tests

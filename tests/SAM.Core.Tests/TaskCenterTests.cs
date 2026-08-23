@@ -242,6 +242,25 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Named_pipe_isolation_host_round_trips_metadata_only()
+    {
+        var pipeName = $"sam-test-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var expected = new PluginIsolationResult(true, "accepted", [new PluginMetadata("sample", "Sample", "1.0")]);
+        var server = NamedPipePluginIsolationHost.ServeOnceAsync(pipeName, (request, _) =>
+        {
+            Assert.Equal("plugin.dll", request.AssemblyPath);
+            return Task.FromResult(expected);
+        }, timeout.Token);
+
+        var result = await new NamedPipePluginIsolationHost(pipeName).InspectAsync(new PluginIsolationRequest("plugin.dll", new string('A', 64)), timeout.Token);
+        await server;
+        Assert.Equal(expected.Accepted, result.Accepted);
+        Assert.Equal(expected.Message, result.Message);
+        Assert.Equal(expected.Plugins, result.Plugins);
+    }
+
+    [Fact]
     public void Plugin_runtime_stops_plugins_in_reverse_order_and_only_once()
     {
         var lifecycle = new List<string>();
