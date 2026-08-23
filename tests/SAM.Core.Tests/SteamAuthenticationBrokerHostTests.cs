@@ -39,6 +39,22 @@ public sealed class SteamAuthenticationBrokerHostTests
     }
 
     [Fact]
+    public async Task Host_does_not_forward_account_metadata_for_non_successful_outcomes()
+    {
+        var pipeName = $"sam-steam-host-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var transport = new StubTransport(new SteamAuthenticationResult(SteamAuthenticationStatus.InvalidCredentials, "private detail", "76561190000000001", "private persona"));
+        var server = new SteamAuthenticationBrokerHost(transport).ServeOnceAsync(pipeName, timeout.Token);
+
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("test_account_0001", timeout.Token);
+        await server;
+
+        Assert.Equal(SteamAuthenticationStatus.InvalidCredentials, result.Status);
+        Assert.Null(result.SteamId);
+        Assert.Null(result.PersonaName);
+    }
+
+    [Fact]
     public async Task Host_answers_a_probe_without_calling_the_credential_transport()
     {
         var pipeName = $"sam-steam-host-{Guid.NewGuid():N}";
