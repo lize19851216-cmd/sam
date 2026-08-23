@@ -51,6 +51,8 @@ public sealed class SamDatabase {
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
         var snapshot = accounts.ToArray();
+        if (snapshot.Select(account => account.Id).Distinct().Count() != snapshot.Length)
+            throw new ArgumentException("An account snapshot cannot contain duplicate account IDs.", nameof(accounts));
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync(cancellationToken);
         await using var transaction = (SqliteTransaction)await c.BeginTransactionAsync(cancellationToken);
