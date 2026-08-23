@@ -16,6 +16,9 @@ public sealed class SteamAuthenticationBrokerHost(ISteamAuthenticationTransport 
 
     private async Task<SteamAuthenticationBrokerResponse> AuthenticateAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)
     {
+        if (request.Kind == SteamAuthenticationBrokerRequestKind.Probe)
+            return new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Failed);
+
         try
         {
             var result = await authenticationTransport.AuthenticateAsync(request.AccountName, cancellationToken).ConfigureAwait(false);

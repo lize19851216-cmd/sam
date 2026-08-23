@@ -13,7 +13,7 @@ catch (ArgumentException exception)
     return 2;
 }
 
-Console.WriteLine("SAM Steam authentication broker is waiting for one local request.");
+Console.WriteLine("SAM Steam authentication broker is waiting for local requests.");
 Console.WriteLine("Credentials are requested only after a request arrives and are never written to disk.");
 using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, eventArgs) =>
@@ -26,8 +26,13 @@ try
 {
     var configurator = new ConsoleSteamLogOnConfigurator();
     var transport = new SteamKitAuthenticationTransport(new SteamKitAuthenticationSessionFactory(configurator));
-    await new SteamAuthenticationBrokerHost(transport).ServeOnceAsync(pipeName, cancellation.Token);
-    Console.WriteLine("SAM Steam authentication broker completed one request.");
+    var host = new SteamAuthenticationBrokerHost(transport);
+    while (!cancellation.IsCancellationRequested)
+    {
+        await host.ServeOnceAsync(pipeName, cancellation.Token);
+        Console.WriteLine("SAM Steam authentication broker completed a local request and is waiting for another.");
+    }
+
     return 0;
 }
 catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
