@@ -18,7 +18,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<SamTaskRecord> _tasks = [];
     private readonly ObservableCollection<PluginDisplay> _plugins = [];
     private readonly PluginLoader _pluginLoader = new();
-    private readonly ExclusiveOperationGate _loginGate = new();
+    private readonly ExclusiveOperationGate _accountOperationGate = new();
     private readonly SteamClientOptions _steamClientOptions = new();
     private readonly WorkerPool _pool;
     private readonly SamDatabase _database;
@@ -74,15 +74,36 @@ public partial class MainWindow : Window
 
     private async Task GenerateAsync(int count)
     {
-        _accounts.Clear();
-        for (var i = 1; i <= count; i++)
-            _accounts.Add(new Account {
+        var operationLease = _accountOperationGate.TryEnter();
+        if (operationLease is null)
+        {
+            StatusText.Text = "已有账号操作正在运行";
+            return;
+        }
+
+        using (operationLease)
+        {
+            var generatedAccounts = Enumerable.Range(1, count).Select(i => new Account
+            {
                 AccountName = $"mock_{i:0000}",
                 SteamId = $"7656119{Random.Shared.NextInt64(10000000000, 99999999999)}"
-            });
-        await _database.ReplaceAccountsAsync(_accounts);
-        _log.Information("Generated and persisted {AccountCount} fake accounts", count);
-        StatusText.Text = $"已生成 {count} 个模拟账号";
+            }).ToArray();
+            SetAccountOperationControls(isEnabled: false);
+            try
+            {
+                await _database.ReplaceAccountsAsync(generatedAccounts);
+                _accounts.Clear();
+                foreach (var account in generatedAccounts) _accounts.Add(account);
+                _log.Information("Generated and persisted {AccountCount} fake accounts", count);
+                StatusText.Text = $"已生成 {count} 个模拟账号";
+            }
+            catch (Exception exception)
+            {
+                _log.Error(exception, "Failed to generate simulated accounts");
+                StatusText.Text = $"生成错误：{exception.Message}";
+            }
+            finally { SetAccountOperationControls(isEnabled: true); }
+        }
     }
 
     private async void Generate100_Click(object sender, RoutedEventArgs e) => await GenerateAsync(100);
@@ -90,10 +111,10 @@ public partial class MainWindow : Window
 
     private async void Login_Click(object sender, RoutedEventArgs e)
     {
-        var loginLease = _loginGate.TryEnter();
+        var loginLease = _accountOperationGate.TryEnter();
         if (loginLease is null)
         {
-            StatusText.Text = "已有登录批次正在运行";
+            StatusText.Text = "已有账号操作正在运行";
             return;
         }
 
@@ -104,7 +125,7 @@ public partial class MainWindow : Window
             ConcurrencyBox.Text = concurrency.ToString();
             if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号"; return; }
             _loginCancellation = new CancellationTokenSource();
-            LoginButton.IsEnabled = false;
+            SetAccountOperationControls(isEnabled: false);
             CancelButton.IsEnabled = true;
             StatusText.Text = $"运行中：{_accounts.Count} 个账号，并发 {concurrency}";
             try
@@ -120,7 +141,7 @@ public partial class MainWindow : Window
             finally
             {
                 CancelButton.IsEnabled = false;
-                LoginButton.IsEnabled = true;
+                SetAccountOperationControls(isEnabled: true);
                 _loginCancellation?.Dispose();
                 _loginCancellation = null;
             }
@@ -131,6 +152,14 @@ public partial class MainWindow : Window
     {
         _loginCancellation?.Cancel();
         StatusText.Text = "正在取消任务…";
+    }
+
+    private void SetAccountOperationControls(bool isEnabled)
+    {
+        Generate100Button.IsEnabled = isEnabled;
+        Generate500Button.IsEnabled = isEnabled;
+        LoginButton.IsEnabled = isEnabled;
+        ConcurrencyBox.IsEnabled = isEnabled;
     }
 
     private async Task RefreshTasksAsync()
