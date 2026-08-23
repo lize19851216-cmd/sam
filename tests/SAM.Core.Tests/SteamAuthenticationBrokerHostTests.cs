@@ -123,11 +123,15 @@ public sealed class SteamAuthenticationBrokerHostTests
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SAM.slnx"))) directory = directory.Parent;
         if (directory is null) throw new InvalidOperationException("Could not locate the SAM repository root.");
 
-        var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name;
-        if (configuration is not "Debug" and not "Release")
+        var testOutputDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+        DirectoryInfo? configurationDirectory = testOutputDirectory;
+        while (configurationDirectory is not null && configurationDirectory.Name is not "Debug" and not "Release")
+            configurationDirectory = configurationDirectory.Parent;
+        if (configurationDirectory is null)
             throw new InvalidOperationException("Could not determine the test build configuration.");
 
-        return Path.Combine(directory.FullName, "src", "SAM.SteamBroker", "bin", configuration, "net10.0", "SAM.SteamBroker.exe");
+        var targetFrameworkAndRuntime = Path.GetRelativePath(configurationDirectory.FullName, testOutputDirectory.FullName);
+        return Path.Combine(directory.FullName, "src", "SAM.SteamBroker", "bin", configurationDirectory.Name, targetFrameworkAndRuntime, "SAM.SteamBroker.exe");
     }
 
     private sealed class StubTransport(SteamAuthenticationResult result) : ISteamAuthenticationTransport

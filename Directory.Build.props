@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Commit resolved dependency graphs so local and CI restores are reproducible. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- SAM ships Windows desktop and broker artifacts; use the same runtime graph locally and in CI. -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+</Project>

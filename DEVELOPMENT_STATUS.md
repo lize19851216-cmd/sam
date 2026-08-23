@@ -102,6 +102,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: local broker protocol rejects non-canonical account names with leading or trailing whitespace
 - [x] M3: local broker responses include account metadata only after a successful authentication outcome
 - [x] Plugin diagnostics: untrusted exception messages are classified without being exposed in the desktop UI
+- [x] Release reproducibility: NuGet dependency graphs are committed as lock files and CI restores in locked mode
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
@@ -118,6 +119,7 @@ Milestone 3 — explicit single-account external-broker test path
 - Broker account-name canonicalization verification — passed, 87/87 tests
 - Broker outcome-metadata minimization verification — passed, 88/88 tests
 - Plugin failure diagnostic sanitization verification — passed, 89/89 tests
+- Locked dependency restore verification — passed, 89/89 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
