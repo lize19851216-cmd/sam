@@ -1,5 +1,6 @@
 using SAM.Infrastructure.Steam;
 using SteamKit2;
+using SteamKit2.Authentication;
 using System.Runtime.InteropServices;
 
 var pipeName = args.Length == 1 ? args[0] : "sam-steam-auth";
@@ -41,17 +42,15 @@ catch
     return 1;
 }
 
-internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamLogOnConfigurator
+internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamAuthSessionConfigurator
 {
-    public void Configure(SteamUser.LogOnDetails logOnDetails)
+    public void Configure(AuthSessionDetails authSessionDetails)
     {
         Console.WriteLine("Enter credentials in this window only. They are masked, kept only in memory, and never written to disk.");
-        Console.Write($"Password for {logOnDetails.Username} (type now, then press Enter): ");
-        logOnDetails.Password = ReadSecret();
-        Console.Write("Steam Guard one-time code (type now, or press Enter if none): ");
-        var code = ReadSecret();
-        if (!string.IsNullOrWhiteSpace(code)) SteamKitGuardCodeConfigurator.Apply(logOnDetails, code);
-        logOnDetails.ShouldRememberPassword = false;
+        Console.Write($"Password for {authSessionDetails.Username} (type now, then press Enter): ");
+        authSessionDetails.Password = ReadSecret();
+        authSessionDetails.IsPersistentSession = false;
+        authSessionDetails.Authenticator = new UserConsoleAuthenticator();
     }
 
     private static string ReadSecret()

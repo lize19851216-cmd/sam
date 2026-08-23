@@ -64,6 +64,24 @@ public sealed class SteamKitAuthenticationTransportTests
     }
 
     [Fact]
+    public void Modern_auth_session_details_keep_the_host_account_and_disable_persistence()
+    {
+        var details = SteamKitAuthSessionDetailsFactory.Create("account_0001", new PasswordConfigurator());
+
+        Assert.Equal("account_0001", details.Username);
+        Assert.Equal("password", details.Password);
+        Assert.False(details.IsPersistentSession);
+        Assert.NotNull(details.Authenticator);
+    }
+
+    [Fact]
+    public void Modern_auth_session_details_reject_account_changes_or_persistence()
+    {
+        Assert.Throws<InvalidOperationException>(() => SteamKitAuthSessionDetailsFactory.Create("account_0001", new AuthSessionAccountChangingConfigurator()));
+        Assert.Throws<InvalidOperationException>(() => SteamKitAuthSessionDetailsFactory.Create("account_0001", new PersistentAuthSessionConfigurator()));
+    }
+
+    [Fact]
     public void Factory_requires_explicit_SteamKit_enablement_for_an_external_broker()
     {
         var factory = new SteamClientFactory();
@@ -134,5 +152,20 @@ public sealed class SteamKitAuthenticationTransportTests
     private sealed class AccountChangingConfigurator : IExternalSteamLogOnConfigurator
     {
         public void Configure(SteamUser.LogOnDetails logOnDetails) => logOnDetails.Username = "another-account";
+    }
+
+    private sealed class PasswordConfigurator : IExternalSteamAuthSessionConfigurator
+    {
+        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.Password = "password";
+    }
+
+    private sealed class AuthSessionAccountChangingConfigurator : IExternalSteamAuthSessionConfigurator
+    {
+        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.Username = "another-account";
+    }
+
+    private sealed class PersistentAuthSessionConfigurator : IExternalSteamAuthSessionConfigurator
+    {
+        public void Configure(SteamKit2.Authentication.AuthSessionDetails authSessionDetails) => authSessionDetails.IsPersistentSession = true;
     }
 }

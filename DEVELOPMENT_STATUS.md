@@ -96,6 +96,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: local authentication broker visibly masks manual password and Steam Guard input, with explicit in-console guidance and no credential persistence
 - [x] M3: a locally entered Steam Guard code supports both email and mobile-authenticator account configurations without persistence
 - [x] M3: local broker results distinguish sanitized credential rejection from an expired or rejected Steam Guard code
+- [x] M3: broker authentication uses SteamKit's maintained credential-session and challenge flow with non-persistent tokens
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
@@ -105,6 +106,7 @@ Milestone 3 — explicit single-account external-broker test path
 - Local broker masked-input prompt build and test verification — passed; credentials remain console-only and are not persisted
 - Email/mobile Steam Guard compatibility verification — passed, 81/81 tests
 - Sanitized credential and Steam Guard diagnostic verification — passed, 84/84 tests
+- SteamKit modern credential-session migration verification — passed, 86/86 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
