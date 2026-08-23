@@ -278,6 +278,33 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Sqlite_task_store_prunes_only_expired_terminal_history()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var store = new SqliteTaskStore(path);
+            await store.InitializeAsync();
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-30);
+            var expiredSucceeded = new SamTaskRecord { TaskType = "expired-success", Status = SamTaskStatus.Succeeded, CompletedAt = cutoff.AddTicks(-1) };
+            var expiredFailed = new SamTaskRecord { TaskType = "expired-failure", Status = SamTaskStatus.Failed, CompletedAt = cutoff.AddTicks(-1).ToOffset(TimeSpan.FromHours(8)) };
+            var expiredCancelled = new SamTaskRecord { TaskType = "expired-cancelled", Status = SamTaskStatus.Cancelled, CompletedAt = cutoff.AddTicks(-1) };
+            var recentSucceeded = new SamTaskRecord { TaskType = "recent-success", Status = SamTaskStatus.Succeeded, CompletedAt = cutoff.AddTicks(1) };
+            var active = new SamTaskRecord { TaskType = "active", Status = SamTaskStatus.Running };
+            var retrying = new SamTaskRecord { TaskType = "retrying", Status = SamTaskStatus.RetryWaiting };
+            var tasks = new[] { expiredSucceeded, expiredFailed, expiredCancelled, recentSucceeded, active, retrying };
+            foreach (var task in tasks) await store.SaveAsync(task);
+
+            var deleted = await store.PruneTerminalTasksAsync(cutoff);
+            var remaining = await store.GetPageAsync(0, 10);
+
+            Assert.Equal(3, deleted);
+            Assert.Equal(new[] { recentSucceeded.Id, active.Id, retrying.Id }.Order(), remaining.Select(task => task.Id).Order());
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_isolation_endpoint_rejects_unsafe_pipe_names()
     {
         Assert.Equal("sam-plugin_01", PluginIsolationEndpoint.ValidatePipeName("sam-plugin_01"));
