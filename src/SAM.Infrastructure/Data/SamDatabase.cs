@@ -57,6 +57,15 @@ public sealed class SamDatabase {
         return await cmd.ExecuteNonQueryAsync(cancellationToken) == 1;
     }
 
+    /// <summary>Clears the persisted account list and returns the number of deleted accounts.</summary>
+    public async Task<int> ClearAccountsAsync(CancellationToken cancellationToken = default) {
+        await using var c = new SqliteConnection(_cs);
+        await c.OpenAsync(cancellationToken);
+        await using var cmd = c.CreateCommand();
+        cmd.CommandText = "DELETE FROM Accounts;";
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     /// <summary>Atomically replaces the persisted account snapshot.</summary>
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
