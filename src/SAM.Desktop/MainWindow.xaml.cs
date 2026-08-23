@@ -431,8 +431,11 @@ public partial class MainWindow : Window
             StatusText.Text = $"运行中：{_accounts.Count} 个账号，并发 {concurrency}";
             try
             {
+                var retryPolicy = _externalBrokerEnabled
+                    ? RealAccountTestPolicy.CreateInteractiveLoginRetryPolicy()
+                    : new RetryPolicy();
                 await _pool.RunLoginBatchAsync(_accounts, concurrency, _ =>
-                    Dispatcher.BeginInvoke(AccountsGrid.Items.Refresh), _loginCancellation.Token, new RetryPolicy(), _taskCenter);
+                    Dispatcher.BeginInvoke(AccountsGrid.Items.Refresh), _loginCancellation.Token, retryPolicy, _taskCenter);
                 await Task.WhenAll(_accounts.Select(_database.SaveAccountAsync));
                 await RefreshTasksAsync();
                 StatusText.Text = $"完成：在线 {_accounts.Count(a => a.Status == AccountStatus.Online)} / {_accounts.Count}";

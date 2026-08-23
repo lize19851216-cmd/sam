@@ -7,6 +7,9 @@ namespace SAM.Core;
 public static class RealAccountTestPolicy
 {
     public const int MaximumAccountNameLength = Steam.SteamAuthenticationBrokerRequest.MaximumAccountNameLength;
+    public static readonly TimeSpan InteractiveLoginTimeout = TimeSpan.FromMinutes(3.5);
+
+    public static Tasks.RetryPolicy CreateInteractiveLoginRetryPolicy() => new(MaxRetries: 0, Timeout: InteractiveLoginTimeout);
 
     public static bool IsSimulatedAccountName(string? accountName) =>
         accountName?.StartsWith("mock_", StringComparison.OrdinalIgnoreCase) == true;
