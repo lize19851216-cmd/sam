@@ -52,6 +52,15 @@ public sealed class SteamKitAuthenticationTransportTests
         Assert.Throws<InvalidOperationException>(() => SteamKitLogOnDetailsFactory.Create("mock_0001", new AccountChangingConfigurator()));
     }
 
+    [Fact]
+    public void Factory_requires_explicit_SteamKit_enablement_for_an_external_broker()
+    {
+        var factory = new SteamClientFactory();
+
+        Assert.Throws<InvalidOperationException>(() => factory.CreateWithExternalBroker(new SteamClientOptions(SteamClientMode.SteamKit), "sam-steam-auth"));
+        Assert.IsType<SteamKitClientAdapter>(factory.CreateWithExternalBroker(new SteamClientOptions(SteamClientMode.SteamKit, EnableSteamKit: true), "sam-steam-auth"));
+    }
+
     [Theory]
     [InlineData(EResult.OK, SteamAuthenticationStatus.Online)]
     [InlineData(EResult.AccountLogonDenied, SteamAuthenticationStatus.RequiresSteamGuard)]
