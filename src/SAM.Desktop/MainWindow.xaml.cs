@@ -114,8 +114,9 @@ public partial class MainWindow : Window
 
     private void ClientModeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (BrokerPipeNameBox is null) return;
+        if (BrokerPipeNameBox is null || TestBrokerButton is null) return;
         BrokerPipeNameBox.IsEnabled = ClientModeBox.SelectedIndex == 1 && _loginCancellation is null;
+        TestBrokerButton.IsEnabled = ClientModeBox.SelectedIndex == 1 && _loginCancellation is null;
     }
 
     private void ApplyClientMode_Click(object sender, RoutedEventArgs e)
@@ -134,6 +135,7 @@ public partial class MainWindow : Window
             _externalBrokerEnabled = false;
             EnvironmentText.Text = "   模拟环境";
             BrokerPipeNameBox.IsEnabled = false;
+            TestBrokerButton.IsEnabled = false;
             StatusText.Text = "已应用模拟客户端";
             _log.Information("Desktop switched to the safe fake Steam client");
             return;
@@ -158,6 +160,7 @@ public partial class MainWindow : Window
             _externalBrokerEnabled = true;
             EnvironmentText.Text = "   外部认证代理";
             BrokerPipeNameBox.IsEnabled = true;
+            TestBrokerButton.IsEnabled = true;
             StatusText.Text = $"已应用外部认证代理：{pipeName}";
             _log.Information("Desktop enabled the explicit external Steam authentication broker with pipe {BrokerPipeName}", pipeName);
         }
@@ -170,11 +173,47 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void TestBroker_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loginCancellation is not null)
+        {
+            StatusText.Text = "任务运行中，无法测试认证代理";
+            return;
+        }
+
+        TestBrokerButton.IsEnabled = false;
+        try
+        {
+            var pipeName = SteamAuthenticationBrokerEndpoint.ValidatePipeName(BrokerPipeNameBox.Text);
+            var connected = await new NamedPipeSteamAuthenticationBroker(pipeName, TimeSpan.FromSeconds(2)).ProbeAsync();
+            StatusText.Text = connected
+                ? "认证代理连接正常；未发起登录，也未请求凭据"
+                : "无法连接认证代理；请确认 SAM.SteamBroker 正在运行且管道名称一致";
+            _log.Information("External Steam authentication broker connectivity probe returned {Connected} for pipe {BrokerPipeName}", connected, pipeName);
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = "认证代理设置无效";
+            _log.Warning(exception, "External Steam authentication broker connectivity probe was rejected");
+        }
+        finally
+        {
+            TestBrokerButton.IsEnabled = ClientModeBox.SelectedIndex == 1;
+        }
+    }
+
     private async void Login_Click(object sender, RoutedEventArgs e)
     {
         if ((ClientModeBox.SelectedIndex == 1) != _externalBrokerEnabled)
         {
             StatusText.Text = "认证客户端设置已变更，请先点击“应用认证设置”";
+            return;
+        }
+
+        if (_externalBrokerEnabled && _accounts.Any(account => account.AccountName.StartsWith("mock_", StringComparison.OrdinalIgnoreCase)))
+        {
+            StatusText.Text = "外部认证代理不能用于 mock 模拟账号；请使用“测试代理连接”验证代理";
+            _log.Warning("Blocked external authentication broker login for simulated mock accounts");
             return;
         }
 
@@ -230,6 +269,7 @@ public partial class MainWindow : Window
         ClientModeBox.IsEnabled = isEnabled;
         ApplyClientModeButton.IsEnabled = isEnabled;
         BrokerPipeNameBox.IsEnabled = isEnabled && ClientModeBox.SelectedIndex == 1;
+        TestBrokerButton.IsEnabled = isEnabled && ClientModeBox.SelectedIndex == 1;
     }
 
     private async Task RefreshTasksAsync()

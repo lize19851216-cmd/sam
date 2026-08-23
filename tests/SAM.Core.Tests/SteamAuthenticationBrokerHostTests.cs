@@ -37,6 +37,21 @@ public sealed class SteamAuthenticationBrokerHostTests
         Assert.Equal("Steam authentication was rejected.", result.Message);
     }
 
+    [Fact]
+    public async Task Host_answers_a_probe_without_calling_the_credential_transport()
+    {
+        var pipeName = $"sam-steam-host-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var transport = new ThrowingTransport();
+        var server = new SteamAuthenticationBrokerHost(transport).ServeOnceAsync(pipeName, timeout.Token);
+
+        var connected = await new NamedPipeSteamAuthenticationBroker(pipeName).ProbeAsync(timeout.Token);
+        await server;
+
+        Assert.True(connected);
+        Assert.False(transport.WasCalled);
+    }
+
     private sealed class StubTransport(SteamAuthenticationResult result) : ISteamAuthenticationTransport
     {
         public string? AccountName { get; private set; }
@@ -49,7 +64,14 @@ public sealed class SteamAuthenticationBrokerHostTests
 
     private sealed class ThrowingTransport : ISteamAuthenticationTransport
     {
+        public bool WasCalled { get; private set; }
         public Task<SteamAuthenticationResult> AuthenticateAsync(string accountName, CancellationToken cancellationToken) =>
+            Throw();
+
+        private Task<SteamAuthenticationResult> Throw()
+        {
+            WasCalled = true;
             throw new InvalidOperationException("sensitive external failure");
+        }
     }
 }

@@ -51,15 +51,7 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
 
         try
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(_operationTimeout);
-            await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, SteamAuthenticationBrokerEndpoint.LocalUserPipeOptions);
-            await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
-            await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), timeout.Token).ConfigureAwait(false);
-            var response = JsonSerializer.Deserialize<SteamAuthenticationBrokerResponse>(await ReadMessageAsync(pipe, timeout.Token).ConfigureAwait(false), JsonOptions)
-                ?? throw new InvalidDataException("Invalid Steam authentication broker response.");
-            response.Validate();
-            return ToSanitizedResult(response);
+            return ToSanitizedResult(await ExchangeAsync(request, cancellationToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -68,6 +60,24 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
         catch
         {
             return new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication broker is unavailable.");
+        }
+    }
+
+    /// <summary>Checks whether a local broker is reachable without submitting an account or requesting credentials.</summary>
+    public async Task<bool> ProbeAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await ExchangeAsync(new SteamAuthenticationBrokerRequest(string.Empty, SteamAuthenticationBrokerRequestKind.Probe), cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -93,6 +103,20 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
         SteamAuthenticationStatus.RateLimited => new(SteamAuthenticationStatus.RateLimited, "Steam temporarily limited this authentication attempt."),
         _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
     };
+
+    private async Task<SteamAuthenticationBrokerResponse> ExchangeAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)
+    {
+        request.Validate();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_operationTimeout);
+        await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, SteamAuthenticationBrokerEndpoint.LocalUserPipeOptions);
+        await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
+        await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), timeout.Token).ConfigureAwait(false);
+        var response = JsonSerializer.Deserialize<SteamAuthenticationBrokerResponse>(await ReadMessageAsync(pipe, timeout.Token).ConfigureAwait(false), JsonOptions)
+            ?? throw new InvalidDataException("Invalid Steam authentication broker response.");
+        response.Validate();
+        return response;
+    }
 
     private static async Task WriteMessageAsync(Stream stream, string message, CancellationToken cancellationToken)
     {

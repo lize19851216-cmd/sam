@@ -5,10 +5,22 @@ public enum SteamAuthenticationStatus { Online, RequiresSteamGuard, RateLimited,
 public sealed record SteamAuthenticationResult(SteamAuthenticationStatus Status, string Message, string? SteamId = null, string? PersonaName = null);
 
 /// <summary>Secret-free request sent from SAM to a separately controlled local authentication broker.</summary>
-public sealed record SteamAuthenticationBrokerRequest(string AccountName)
+public enum SteamAuthenticationBrokerRequestKind { Authenticate, Probe }
+
+/// <summary>Secret-free request sent from SAM to a separately controlled local authentication broker.</summary>
+public sealed record SteamAuthenticationBrokerRequest(string AccountName, SteamAuthenticationBrokerRequestKind Kind = SteamAuthenticationBrokerRequestKind.Authenticate)
 {
     public void Validate()
     {
+        if (!Enum.IsDefined(Kind))
+            throw new ArgumentOutOfRangeException(nameof(Kind));
+        if (Kind == SteamAuthenticationBrokerRequestKind.Probe)
+        {
+            if (!string.IsNullOrEmpty(AccountName))
+                throw new ArgumentException("A broker probe must not include an account name.", nameof(AccountName));
+            return;
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(AccountName);
         if (AccountName.Length > 64 || AccountName.Any(char.IsControl))
             throw new ArgumentException("The account name is invalid.", nameof(AccountName));

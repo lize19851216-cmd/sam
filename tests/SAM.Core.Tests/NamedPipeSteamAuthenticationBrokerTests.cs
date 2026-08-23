@@ -45,10 +45,29 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
     }
 
     [Fact]
+    public async Task Credential_free_probe_round_trip_does_not_submit_an_account_name()
+    {
+        var pipeName = $"sam-steam-broker-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var server = NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, (request, _) =>
+        {
+            Assert.Equal(SteamAuthenticationBrokerRequestKind.Probe, request.Kind);
+            Assert.Equal(string.Empty, request.AccountName);
+            return Task.FromResult(new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Failed));
+        }, timeout.Token);
+
+        var connected = await new NamedPipeSteamAuthenticationBroker(pipeName).ProbeAsync(timeout.Token);
+        await server;
+
+        Assert.True(connected);
+    }
+
+    [Fact]
     public void Broker_endpoint_rejects_unsafe_pipe_names_and_broker_models_reject_invalid_data()
     {
         Assert.Throws<ArgumentException>(() => new NamedPipeSteamAuthenticationBroker("sam/steam"));
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("bad\nname").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001", SteamAuthenticationBrokerRequestKind.Probe).Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "not-a-steam-id").Validate());
     }
 }

@@ -26,6 +26,7 @@
        <TextBlock Text="本地管道:" VerticalAlignment="Center" Margin="16,0,4,0"/>
        <TextBox x:Name="BrokerPipeNameBox" Text="sam-steam-auth" Width="180" Padding="5" IsEnabled="False"/>
        <Button x:Name="ApplyClientModeButton" Content="应用认证设置" Click="ApplyClientMode_Click" Margin="6,0,0,0" Padding="10,4"/>
+       <Button x:Name="TestBrokerButton" Content="测试代理连接" Click="TestBroker_Click" Margin="6,0,0,0" Padding="10,4" IsEnabled="False"/>
        <TextBlock Text="仅连接当前用户的本地代理；SAM 不接收或存储凭据" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
      </StackPanel>
      </StackPanel>
