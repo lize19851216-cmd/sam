@@ -11,7 +11,7 @@ $checksumPath = ".\artifacts\SHA256SUMS.txt"
 if (Test-Path -LiteralPath $checksumPath -PathType Leaf) {
     Remove-Item -LiteralPath $checksumPath -Force
 }
-dotnet restore .\SAM.slnx -r win-x64
+dotnet restore .\SAM.slnx -r win-x64 --locked-mode
 dotnet build .\SAM.slnx -c Release --no-restore
 dotnet test .\tests\SAM.Core.Tests\SAM.Core.Tests.csproj -c Release --no-build
 dotnet publish .\src\SAM.Desktop\SAM.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\SAM
