@@ -114,6 +114,23 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Terminal_tasks_are_not_restarted()
+    {
+        var task = new SamTaskRecord { TaskType = "Test", Status = SamTaskStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow };
+        var invoked = false;
+
+        var result = await new SamTaskCenter().ExecuteAsync(task, _ =>
+        {
+            invoked = true;
+            return Task.FromResult(SamTaskOutcome.Failed("must not run"));
+        });
+
+        Assert.Same(task, result);
+        Assert.False(invoked);
+        Assert.Equal(SamTaskStatus.Succeeded, result.Status);
+    }
+
+    [Fact]
     public async Task Timeout_retries_then_fails()
     {
         var result = await new SamTaskCenter().ExecuteAsync(new SamTaskRecord { TaskType = "Test" }, async token =>

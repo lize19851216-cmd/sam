@@ -68,10 +68,11 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: plugin metadata IPC uses a bounded client operation timeout when no isolated host is available
 - [x] M2: plugin metadata IPC validates complete result contracts before sending or accepting metadata
 - [x] M2: account SQLite storage uses WAL, a bounded busy timeout, cancellation-aware writes, and concurrent-write coverage
+- [x] M2: Task Center never restarts records that have already reached a terminal state
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 59/59 tests
-- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 59/59 tests
+- `dotnet test SAM.slnx --no-build` — passed, 60/60 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 60/60 tests
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
