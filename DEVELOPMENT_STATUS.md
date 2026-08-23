@@ -26,6 +26,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] SQLite Task Center terminal-history retention API that protects active tasks
 - [x] Task Center UI offers confirmed cleanup of terminal history older than 90 days
 - [x] Task Center UI “load more” history control
+- [x] Task Center stable cursor pagination during live task updates
 - [x] Task Center observer fault isolation
 - [x] Cancellation persistence for queued as well as active login tasks
 - [x] Plugin management UI (local plugin discovery and load report)
@@ -51,5 +52,5 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 30/30 tests
+- `dotnet test SAM.slnx --no-build` — passed, 31/31 tests
 - CI-equivalent `win-x64` self-contained single-file publish — passed

@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     private readonly ILogger _log;
     private const int TaskHistoryPageSize = 200;
     private const int TaskHistoryRetentionDays = 90;
-    private int _taskHistoryOffset;
+    private SamTaskHistoryCursor? _taskHistoryCursor;
     private CancellationTokenSource? _loginCancellation;
 
     public MainWindow()
@@ -166,7 +166,7 @@ public partial class MainWindow : Window
     private async Task RefreshTasksAsync()
     {
         _tasks.Clear();
-        _taskHistoryOffset = 0;
+        _taskHistoryCursor = null;
         await LoadTaskHistoryPageAsync(reset: true);
     }
 
@@ -200,11 +200,11 @@ public partial class MainWindow : Window
     private async Task LoadTaskHistoryPageAsync(bool reset = false)
     {
         LoadMoreTasksButton.IsEnabled = false;
-        var page = await _taskStore.GetPageAsync(_taskHistoryOffset, TaskHistoryPageSize);
-        foreach (var task in page.Where(task => _tasks.All(existing => existing.Id != task.Id))) _tasks.Add(task);
-        _taskHistoryOffset += page.Count;
-        LoadMoreTasksButton.IsEnabled = page.Count == TaskHistoryPageSize;
-        if (!reset) _log.Information("Loaded {TaskCount} additional task history records at offset {TaskOffset}", page.Count, _taskHistoryOffset);
+        var page = await _taskStore.GetPageAfterAsync(_taskHistoryCursor, TaskHistoryPageSize);
+        foreach (var task in page.Tasks.Where(task => _tasks.All(existing => existing.Id != task.Id))) _tasks.Add(task);
+        _taskHistoryCursor = page.NextCursor;
+        LoadMoreTasksButton.IsEnabled = page.NextCursor is not null;
+        if (!reset) _log.Information("Loaded {TaskCount} additional task history records using a stable cursor", page.Tasks.Count);
     }
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)

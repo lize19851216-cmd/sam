@@ -242,6 +242,30 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Sqlite_store_cursor_pagination_is_not_shifted_by_newer_tasks()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var store = new SqliteTaskStore(path);
+            await store.InitializeAsync();
+            var baseTime = DateTimeOffset.UtcNow;
+            var oldest = new SamTaskRecord { TaskType = "oldest", UpdatedAt = baseTime.AddMinutes(1) };
+            var middle = new SamTaskRecord { TaskType = "middle", UpdatedAt = baseTime.AddMinutes(2) };
+            var newest = new SamTaskRecord { TaskType = "newest", UpdatedAt = baseTime.AddMinutes(3) };
+            foreach (var task in new[] { oldest, middle, newest }) await store.SaveAsync(task);
+
+            var firstPage = await store.GetPageAfterAsync(null, 2);
+            await store.SaveAsync(new SamTaskRecord { TaskType = "arrived-later", UpdatedAt = baseTime.AddMinutes(4) });
+            var secondPage = await store.GetPageAfterAsync(firstPage.NextCursor, 2);
+
+            Assert.Equal(["newest", "middle"], firstPage.Tasks.Select(task => task.TaskType));
+            Assert.Equal(["oldest"], secondPage.Tasks.Select(task => task.TaskType));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_trust_policy_can_safely_skip_an_unreadable_diagnostic_hash()
     {
         var missingAssembly = Path.Combine(Path.GetTempPath(), $"sam-missing-{Guid.NewGuid():N}.dll");
