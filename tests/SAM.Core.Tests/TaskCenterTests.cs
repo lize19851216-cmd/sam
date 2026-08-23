@@ -273,6 +273,27 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_deletes_only_the_requested_account()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var retained = new SAM.Core.Account { AccountName = "mock_retained" };
+            var deleted = new SAM.Core.Account { AccountName = "mock_deleted" };
+            await database.ReplaceAccountsAsync([retained, deleted]);
+
+            Assert.True(await database.DeleteAccountAsync(deleted.Id));
+            Assert.False(await database.DeleteAccountAsync(deleted.Id));
+
+            var restored = Assert.Single(await database.GetAccountsAsync());
+            Assert.Equal(retained.Id, restored.Id);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_rejects_invalid_snapshot_without_losing_saved_accounts()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

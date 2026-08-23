@@ -47,6 +47,16 @@ public sealed class SamDatabase {
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>Deletes one persisted account without replacing the remaining snapshot.</summary>
+    public async Task<bool> DeleteAccountAsync(Guid accountId, CancellationToken cancellationToken = default) {
+        await using var c = new SqliteConnection(_cs);
+        await c.OpenAsync(cancellationToken);
+        await using var cmd = c.CreateCommand();
+        cmd.CommandText = "DELETE FROM Accounts WHERE Id = $id;";
+        cmd.Parameters.AddWithValue("$id", accountId.ToString());
+        return await cmd.ExecuteNonQueryAsync(cancellationToken) == 1;
+    }
+
     /// <summary>Atomically replaces the persisted account snapshot.</summary>
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
