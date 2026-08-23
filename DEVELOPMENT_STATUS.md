@@ -35,6 +35,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] Worker Pool isolates account-update observer failures from background task execution
+- [x] Desktop login batches use an exclusive operation gate to prevent overlapping runs
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
 - [x] M1 safe client selection and explicit opt-in configuration
 - [x] Desktop startup uses the safe client factory and remains in Fake mode by default
@@ -43,4 +44,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 26/26 tests
+- `dotnet test SAM.slnx --no-build` — passed, 27/27 tests

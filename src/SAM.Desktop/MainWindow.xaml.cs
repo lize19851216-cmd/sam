@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<SamTaskRecord> _tasks = [];
     private readonly ObservableCollection<PluginDisplay> _plugins = [];
     private readonly PluginLoader _pluginLoader = new();
+    private readonly ExclusiveOperationGate _loginGate = new();
     private readonly SteamClientOptions _steamClientOptions = new();
     private readonly WorkerPool _pool;
     private readonly SamDatabase _database;
@@ -89,24 +90,41 @@ public partial class MainWindow : Window
 
     private async void Login_Click(object sender, RoutedEventArgs e)
     {
-        if (!int.TryParse(ConcurrencyBox.Text, out var concurrency)) concurrency = WorkerPool.MaximumConcurrency;
-        concurrency = WorkerPool.NormalizeConcurrency(concurrency);
-        ConcurrencyBox.Text = concurrency.ToString();
-        if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号"; return; }
-        _loginCancellation = new CancellationTokenSource();
-        CancelButton.IsEnabled = true;
-        StatusText.Text = $"运行中：{_accounts.Count} 个账号，并发 {concurrency}";
-        try
+        var loginLease = _loginGate.TryEnter();
+        if (loginLease is null)
         {
-            await _pool.RunLoginBatchAsync(_accounts, concurrency, _ =>
-                Dispatcher.BeginInvoke(AccountsGrid.Items.Refresh), _loginCancellation.Token, new RetryPolicy(), _taskCenter);
-            await Task.WhenAll(_accounts.Select(_database.SaveAccountAsync));
-            await RefreshTasksAsync();
-            StatusText.Text = $"完成：在线 {_accounts.Count(a => a.Status == AccountStatus.Online)} / {_accounts.Count}";
-            _log.Information("Login batch completed with {OnlineCount} online accounts", _accounts.Count(a => a.Status == AccountStatus.Online));
+            StatusText.Text = "已有登录批次正在运行";
+            return;
         }
-        catch (Exception ex) { _log.Error(ex, "Login batch failed"); StatusText.Text = $"错误：{ex.Message}"; }
-        finally { CancelButton.IsEnabled = false; _loginCancellation?.Dispose(); _loginCancellation = null; }
+
+        using (loginLease)
+        {
+            if (!int.TryParse(ConcurrencyBox.Text, out var concurrency)) concurrency = WorkerPool.MaximumConcurrency;
+            concurrency = WorkerPool.NormalizeConcurrency(concurrency);
+            ConcurrencyBox.Text = concurrency.ToString();
+            if (_accounts.Count == 0) { StatusText.Text = "请先生成模拟账号"; return; }
+            _loginCancellation = new CancellationTokenSource();
+            LoginButton.IsEnabled = false;
+            CancelButton.IsEnabled = true;
+            StatusText.Text = $"运行中：{_accounts.Count} 个账号，并发 {concurrency}";
+            try
+            {
+                await _pool.RunLoginBatchAsync(_accounts, concurrency, _ =>
+                    Dispatcher.BeginInvoke(AccountsGrid.Items.Refresh), _loginCancellation.Token, new RetryPolicy(), _taskCenter);
+                await Task.WhenAll(_accounts.Select(_database.SaveAccountAsync));
+                await RefreshTasksAsync();
+                StatusText.Text = $"完成：在线 {_accounts.Count(a => a.Status == AccountStatus.Online)} / {_accounts.Count}";
+                _log.Information("Login batch completed with {OnlineCount} online accounts", _accounts.Count(a => a.Status == AccountStatus.Online));
+            }
+            catch (Exception ex) { _log.Error(ex, "Login batch failed"); StatusText.Text = $"错误：{ex.Message}"; }
+            finally
+            {
+                CancelButton.IsEnabled = false;
+                LoginButton.IsEnabled = true;
+                _loginCancellation?.Dispose();
+                _loginCancellation = null;
+            }
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
