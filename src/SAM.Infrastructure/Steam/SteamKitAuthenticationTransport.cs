@@ -144,6 +144,12 @@ public static class SteamKitAuthSessionDetailsFactory
 /// <summary>Maps SteamKit protocol responses to SAM's credential-free transport result.</summary>
 public static class SteamKitAuthenticationResultMapper
 {
+    public static SteamAuthenticationResult From(AuthenticationException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        return From(exception.Result);
+    }
+
     public static SteamAuthenticationResult From(EResult result, string? steamId = null) => result switch
     {
         EResult.OK => new(SteamAuthenticationStatus.Online, "Steam authentication succeeded.", steamId),
@@ -222,6 +228,10 @@ internal sealed class SteamKitAuthenticationSession : ISteamKitAuthenticationSes
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             completion.TrySetCanceled(cancellationToken);
+        }
+        catch (AuthenticationException exception)
+        {
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(exception));
         }
         catch
         {

@@ -105,6 +105,16 @@ public sealed class SteamKitAuthenticationTransportTests
         Assert.DoesNotContain(result.ToString(), mapped.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Modern_authentication_exception_is_mapped_without_exposing_exception_text()
+    {
+        var mapped = SteamKitAuthenticationResultMapper.From(new SteamKit2.Authentication.AuthenticationException("sensitive exception detail", EResult.InvalidPassword));
+
+        Assert.Equal(SteamAuthenticationStatus.InvalidCredentials, mapped.Status);
+        Assert.Equal("Steam rejected the account name or password.", mapped.Message);
+        Assert.DoesNotContain("sensitive", mapped.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class StubSessionFactory(ISteamKitAuthenticationSession session) : ISteamKitAuthenticationSessionFactory
     {
         public ISteamKitAuthenticationSession Create() => session;
