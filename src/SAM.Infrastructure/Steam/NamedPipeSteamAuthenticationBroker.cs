@@ -103,6 +103,8 @@ public sealed class NamedPipeSteamAuthenticationBroker : ISteamAuthenticationTra
     {
         SteamAuthenticationStatus.Online => new(SteamAuthenticationStatus.Online, "Steam authentication succeeded.", response.SteamId, response.PersonaName),
         SteamAuthenticationStatus.RequiresSteamGuard => new(SteamAuthenticationStatus.RequiresSteamGuard, "Steam Guard verification is required."),
+        SteamAuthenticationStatus.InvalidSteamGuardCode => new(SteamAuthenticationStatus.InvalidSteamGuardCode, "Steam Guard code was rejected or expired."),
+        SteamAuthenticationStatus.InvalidCredentials => new(SteamAuthenticationStatus.InvalidCredentials, "Steam rejected the account name or password."),
         SteamAuthenticationStatus.RateLimited => new(SteamAuthenticationStatus.RateLimited, "Steam temporarily limited this authentication attempt."),
         _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
     };
