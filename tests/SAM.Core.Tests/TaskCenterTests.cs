@@ -247,6 +247,29 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_cancellation_prevents_all_account_mutations()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var savedAccount = new SAM.Core.Account { AccountName = "mock_saved" };
+            await database.ReplaceAccountsAsync([savedAccount]);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => database.SaveAccountAsync(new SAM.Core.Account { AccountName = "mock_new" }, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => database.DeleteAccountAsync(savedAccount.Id, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => database.ClearAccountsAsync(cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => database.ReplaceAccountsAsync([], cancellation.Token));
+
+            Assert.Equal(savedAccount.Id, Assert.Single(await database.GetAccountsAsync()).Id);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_replaces_previous_simulated_account_snapshot()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

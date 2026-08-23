@@ -38,6 +38,7 @@ public sealed class SamDatabase {
     public Task SaveAccountAsync(Account a) => SaveAccountAsync(a, CancellationToken.None);
 
     public async Task SaveAccountAsync(Account a, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateAccount(a);
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync(cancellationToken);
@@ -49,6 +50,7 @@ public sealed class SamDatabase {
 
     /// <summary>Deletes one persisted account without replacing the remaining snapshot.</summary>
     public async Task<bool> DeleteAccountAsync(Guid accountId, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync(cancellationToken);
         await using var cmd = c.CreateCommand();
@@ -59,6 +61,7 @@ public sealed class SamDatabase {
 
     /// <summary>Clears the persisted account list and returns the number of deleted accounts.</summary>
     public async Task<int> ClearAccountsAsync(CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         await using var c = new SqliteConnection(_cs);
         await c.OpenAsync(cancellationToken);
         await using var cmd = c.CreateCommand();
@@ -69,6 +72,7 @@ public sealed class SamDatabase {
     /// <summary>Atomically replaces the persisted account snapshot.</summary>
     public async Task ReplaceAccountsAsync(IEnumerable<Account> accounts, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(accounts);
+        cancellationToken.ThrowIfCancellationRequested();
         var snapshot = accounts.ToArray();
         foreach (var account in snapshot) ValidateAccount(account);
         if (snapshot.Select(account => account.Id).Distinct().Count() != snapshot.Length)
