@@ -300,6 +300,29 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Account_database_rejects_duplicate_names_without_losing_saved_accounts()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var database = new SamDatabase(path);
+            await database.InitializeAsync();
+            var savedAccount = new SAM.Core.Account { AccountName = "mock_saved" };
+            await database.ReplaceAccountsAsync([savedAccount]);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => database.ReplaceAccountsAsync([
+                new SAM.Core.Account { AccountName = "mock_duplicate" },
+                new SAM.Core.Account { AccountName = "MOCK_DUPLICATE" }
+            ]));
+
+            var restored = Assert.Single(await database.GetAccountsAsync());
+            Assert.Equal(savedAccount.Id, restored.Id);
+            Assert.Equal("mock_saved", restored.AccountName);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Account_database_persists_concurrent_account_updates()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
