@@ -66,10 +66,11 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: SQLite task history normalizes timestamps to UTC so cross-time-zone records paginate in chronological order
 - [x] M2: plugin metadata IPC rejects oversized outbound messages before they reach a local client
 - [x] M2: plugin metadata IPC uses a bounded client operation timeout when no isolated host is available
+- [x] M2: plugin metadata IPC validates complete result contracts before sending or accepting metadata
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 57/57 tests
-- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 57/57 tests
+- `dotnet test SAM.slnx --no-build` — passed, 58/58 tests
+- `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 58/58 tests
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
