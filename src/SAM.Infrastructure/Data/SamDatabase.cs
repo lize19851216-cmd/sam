@@ -2,6 +2,7 @@
 using SAM.Core;
 namespace SAM.Infrastructure.Data;
 public sealed class SamDatabase {
+    private const int BusyTimeoutSeconds = 5;
     private readonly string _cs;
     private const string AccountUpsertCommand = """
         INSERT INTO Accounts(Id,AccountName,SteamId,PersonaName,Status,RetryCount,LastMessage)
@@ -13,13 +14,14 @@ public sealed class SamDatabase {
     public SamDatabase(string databasePath) {
         var directory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-        _cs = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false }.ToString();
+        _cs = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false, DefaultTimeout = BusyTimeoutSeconds }.ToString();
     }
-    public async Task InitializeAsync() {
+    public async Task InitializeAsync(CancellationToken cancellationToken = default) {
         await using var c = new SqliteConnection(_cs);
-        await c.OpenAsync();
+        await c.OpenAsync(cancellationToken);
         await using var cmd = c.CreateCommand();
         cmd.CommandText = """
+        PRAGMA journal_mode = WAL;
         CREATE TABLE IF NOT EXISTS Accounts(
           Id TEXT PRIMARY KEY,
           AccountName TEXT NOT NULL,
@@ -29,16 +31,20 @@ public sealed class SamDatabase {
           RetryCount INTEGER NOT NULL,
           LastMessage TEXT NOT NULL
         );
+        CREATE INDEX IF NOT EXISTS IX_Accounts_AccountName ON Accounts(AccountName);
         """;
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
-    public async Task SaveAccountAsync(Account a) {
+    public Task SaveAccountAsync(Account a) => SaveAccountAsync(a, CancellationToken.None);
+
+    public async Task SaveAccountAsync(Account a, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(a);
         await using var c = new SqliteConnection(_cs);
-        await c.OpenAsync();
+        await c.OpenAsync(cancellationToken);
         await using var cmd = c.CreateCommand();
         cmd.CommandText = AccountUpsertCommand;
         AddAccountParameters(cmd, a);
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     /// <summary>Atomically replaces the persisted simulated-account snapshot.</summary>
