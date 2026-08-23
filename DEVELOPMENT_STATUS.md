@@ -7,6 +7,7 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] FakeSteamClient
 - [x] Worker Pool
 - [x] GitHub Actions
+- [x] GitHub Actions uses least-privilege repository access and cancels superseded branch builds
 - [x] GitHub Actions restores Windows runtime assets before self-contained publish
 - [x] Microsoft.Data.Sqlite upgraded to 10.0.11 to remove the reported SQLite native-library vulnerability
 - [x] SQLite task persistence (`Tasks` table, concurrent-safe connections)
