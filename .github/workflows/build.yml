@@ -33,8 +33,17 @@ jobs:
       - name: Publish Windows x64
         run: dotnet publish .\src\SAM.Desktop\SAM.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\SAM
 
+      - name: Publish Steam authentication broker Windows x64
+        run: dotnet publish .\src\SAM.SteamBroker\SAM.SteamBroker.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\SAM.SteamBroker
+
       - name: Upload SAM
         uses: actions/upload-artifact@v4
         with:
           name: SAM-win-x64
           path: artifacts/SAM/
+
+      - name: Upload Steam authentication broker
+        uses: actions/upload-artifact@v4
+        with:
+          name: SAM-SteamBroker-win-x64
+          path: artifacts/SAM.SteamBroker/
