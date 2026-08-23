@@ -28,6 +28,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Plugin lifecycle policy (reverse-order shutdown and disposable resource release)
 - [x] Default-deny trusted-plugin SHA-256 manifest policy
 - [x] Desktop UI hash copy flow for plugin trust review
+- [x] Plugin failure diagnostics tolerate missing or unreadable assemblies
 - [x] Enforced default-deny execution policy for untrusted third-party plugins
 - [x] Restricted metadata-only IPC contract for a future isolated plugin host
 - [x] Local named-pipe metadata transport for the isolated plugin host contract
@@ -45,4 +46,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 27/27 tests
+- `dotnet test SAM.slnx --no-build` — passed, 28/28 tests
