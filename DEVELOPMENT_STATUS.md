@@ -30,6 +30,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Enforced default-deny execution policy for untrusted third-party plugins
 - [x] Restricted metadata-only IPC contract for a future isolated plugin host
 - [x] Local named-pipe metadata transport for the isolated plugin host contract
+- [x] Current-user-only named-pipe endpoint validation for plugin metadata transport
 - [x] 10 simulated account concurrency and cancellation reliability tests
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] Worker Pool isolates account-update observer failures from background task execution
@@ -41,4 +42,4 @@ Milestone 1 — SteamKit adapter preparation
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
-- `dotnet test SAM.slnx --no-build` — passed, 24/24 tests
+- `dotnet test SAM.slnx --no-build` — passed, 25/25 tests
