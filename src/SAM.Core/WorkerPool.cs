@@ -30,7 +30,7 @@ public sealed class WorkerPool
                 entered = true;
                 account.Status = AccountStatus.Connecting;
                 account.LastMessage = "Worker 已领取任务";
-                changed?.Invoke(account);
+                NotifyAccountChanged(changed, account);
                 LoginResult? loginResult = null;
                 var completed = await center.ExecuteAsync(record, async token =>
                 {
@@ -43,17 +43,28 @@ public sealed class WorkerPool
                 account.RetryCount = completed.RetryCount;
                 account.Status = completed.Status == SamTaskStatus.Cancelled ? AccountStatus.Cancelled : loginResult?.Status ?? AccountStatus.Failed;
                 account.LastMessage = completed.Message;
-                changed?.Invoke(account);
+                NotifyAccountChanged(changed, account);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 await center.CancelAsync(record);
                 account.Status = AccountStatus.Cancelled;
                 account.LastMessage = "Cancelled";
-                changed?.Invoke(account);
+                NotifyAccountChanged(changed, account);
             }
             finally { if (entered) gate.Release(); }
         });
         await Task.WhenAll(tasks);
+    }
+
+    /// <summary>UI observers are notifications only and must not interrupt an account task.</summary>
+    private static void NotifyAccountChanged(Action<Account>? changed, Account account)
+    {
+        if (changed is null) return;
+        foreach (var observer in changed.GetInvocationList().Cast<Action<Account>>())
+        {
+            try { observer(account); }
+            catch { /* UI observers must not interfere with worker execution. */ }
+        }
     }
 }

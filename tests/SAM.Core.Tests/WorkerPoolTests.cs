@@ -40,6 +40,17 @@ public sealed class WorkerPoolTests
         Assert.Equal(accounts.Length, store.Saved.Where(task => task.Status == SamTaskStatus.Cancelled).Select(task => task.Id).Distinct().Count());
     }
 
+    [Fact]
+    public async Task Failing_account_update_observer_does_not_interrupt_login()
+    {
+        var account = new Account { AccountName = "mock_0001" };
+
+        await new WorkerPool(new FakeSteamClient()).RunLoginBatchAsync([account], 1, _ => throw new InvalidOperationException("UI observer failed"));
+
+        Assert.NotEqual(AccountStatus.Connecting, account.Status);
+        Assert.NotEqual(AccountStatus.Imported, account.Status);
+    }
+
     private sealed class TrackingSteamClient : ISteamClientService
     {
         private int _active;
