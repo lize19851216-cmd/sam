@@ -24,6 +24,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] SQLite Task Center history pagination API
 - [x] SQLite WAL and busy-timeout configuration with concurrent task-write coverage
 - [x] SQLite Task Center terminal-history retention API that protects active tasks
+- [x] Task Center UI offers confirmed cleanup of terminal history older than 90 days
 - [x] Task Center UI “load more” history control
 - [x] Task Center observer fault isolation
 - [x] Cancellation persistence for queued as well as active login tasks

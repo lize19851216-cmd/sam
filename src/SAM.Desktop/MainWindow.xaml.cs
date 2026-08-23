@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private readonly SamTaskCenter _taskCenter;
     private readonly ILogger _log;
     private const int TaskHistoryPageSize = 200;
+    private const int TaskHistoryRetentionDays = 90;
     private int _taskHistoryOffset;
     private CancellationTokenSource? _loginCancellation;
 
@@ -170,6 +171,31 @@ public partial class MainWindow : Window
     }
 
     private async void LoadMoreTasks_Click(object sender, RoutedEventArgs e) => await LoadTaskHistoryPageAsync();
+
+    private async void PruneTaskHistory_Click(object sender, RoutedEventArgs e)
+    {
+        var confirmation = MessageBox.Show(
+            $"将永久删除超过 {TaskHistoryRetentionDays} 天的已完成、失败或已取消任务历史。运行中和待执行任务不会受影响。是否继续？",
+            "清理任务历史",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes) return;
+
+        PruneTaskHistoryButton.IsEnabled = false;
+        try
+        {
+            var deleted = await _taskStore.PruneTerminalTasksAsync(DateTimeOffset.UtcNow.AddDays(-TaskHistoryRetentionDays));
+            await RefreshTasksAsync();
+            StatusText.Text = $"已清理 {deleted} 条过期终态任务历史";
+            _log.Information("Pruned {TaskCount} expired terminal task history records", deleted);
+        }
+        catch (Exception exception)
+        {
+            _log.Error(exception, "Failed to prune terminal task history");
+            StatusText.Text = $"清理任务历史错误：{exception.Message}";
+        }
+        finally { PruneTaskHistoryButton.IsEnabled = true; }
+    }
 
     private async Task LoadTaskHistoryPageAsync(bool reset = false)
     {
