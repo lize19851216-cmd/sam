@@ -36,6 +36,7 @@ Milestone 1 — SteamKit adapter preparation
 - [x] Worker Pool hard concurrency cap of 10 (including UI input normalization)
 - [x] Worker Pool isolates account-update observer failures from background task execution
 - [x] Desktop login batches use an exclusive operation gate to prevent overlapping runs
+- [x] Account generation shares the desktop operation gate and refreshes the UI only after persistence succeeds
 - [x] M1 SteamKit adapter boundary (sanitized transport contract and mapping adapter)
 - [x] M1 safe client selection and explicit opt-in configuration
 - [x] Desktop startup uses the safe client factory and remains in Fake mode by default

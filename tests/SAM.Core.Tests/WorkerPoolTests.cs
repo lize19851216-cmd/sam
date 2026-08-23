@@ -15,7 +15,12 @@ public sealed class WorkerPoolTests
         Assert.Null(gate.TryEnter());
 
         firstLease.Dispose();
-        Assert.NotNull(gate.TryEnter());
+        var secondLease = gate.TryEnter();
+        Assert.NotNull(secondLease);
+
+        firstLease.Dispose();
+        Assert.Null(gate.TryEnter());
+        secondLease.Dispose();
     }
 
     [Fact]
