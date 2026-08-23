@@ -80,6 +80,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: a valid persisted single-account test name is restored into the desktop form without any credential data
 - [x] CI: release workflow verifies build and test commands leave no tracked-file changes
 - [x] Documentation: README describes release artifact locations and the credential-isolated single-account Broker test flow
+- [x] Release: generated SHA-256 manifests are verified before CI artifact upload
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)

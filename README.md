@@ -21,6 +21,10 @@ PowerShell:
 
 可以先用 `Get-FileHash` 对照 SHA-256 清单，再启动程序。
 
+也可以直接执行：
+
+`pwsh -NoProfile -File .\scripts\verify-artifacts.ps1 -ArtifactDirectory .\artifacts`
+
 ## 可选：单账号本地 Broker 测试
 
 这是一个需要用户本人在本机完成的手动冒烟测试，不会被自动化执行。
