@@ -26,6 +26,8 @@ public sealed class SamTaskCenter
     {
         ArgumentNullException.ThrowIfNull(task);
         ArgumentNullException.ThrowIfNull(operation);
+        if (task.Status is SamTaskStatus.Succeeded or SamTaskStatus.Failed or SamTaskStatus.Cancelled)
+            return task;
         policy ??= new RetryPolicy();
         if (policy.MaxRetries < 0 || policy.EffectiveBaseDelay < TimeSpan.Zero || policy.EffectiveTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(policy));
         while (true)
