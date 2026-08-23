@@ -1,5 +1,6 @@
 using SAM.Core.Steam;
 using SteamKit2;
+using SteamKit2.Authentication;
 
 namespace SAM.Infrastructure.Steam;
 
@@ -10,6 +11,16 @@ namespace SAM.Infrastructure.Steam;
 public interface IExternalSteamLogOnConfigurator
 {
     void Configure(SteamUser.LogOnDetails logOnDetails);
+}
+
+/// <summary>
+/// Supplies a credential-authentication session immediately before SteamKit
+/// encrypts and submits it. Implementations must not persist credentials,
+/// access tokens, refresh tokens, or Steam Guard data.
+/// </summary>
+public interface IExternalSteamAuthSessionConfigurator
+{
+    void Configure(AuthSessionDetails authSessionDetails);
 }
 
 /// <summary>Creates a short-lived SteamKit session for one authentication attempt.</summary>
@@ -52,7 +63,7 @@ public sealed class SteamKitAuthenticationTransport(ISteamKitAuthenticationSessi
 }
 
 /// <summary>Creates short-lived sessions backed by the SteamKit2 NuGet package.</summary>
-public sealed class SteamKitAuthenticationSessionFactory(IExternalSteamLogOnConfigurator configurator) : ISteamKitAuthenticationSessionFactory
+public sealed class SteamKitAuthenticationSessionFactory(IExternalSteamAuthSessionConfigurator configurator) : ISteamKitAuthenticationSessionFactory
 {
     public ISteamKitAuthenticationSession Create()
     {
@@ -101,6 +112,35 @@ public static class SteamKitGuardCodeConfigurator
     }
 }
 
+/// <summary>
+/// Creates the non-persistent credential-session details used by SteamKit's
+/// maintained authentication flow. The external prompt may supply secrets but
+/// cannot change SAM's account target or enable token persistence.
+/// </summary>
+public static class SteamKitAuthSessionDetailsFactory
+{
+    public static AuthSessionDetails Create(string accountName, IExternalSteamAuthSessionConfigurator configurator)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accountName);
+        ArgumentNullException.ThrowIfNull(configurator);
+
+        var details = new AuthSessionDetails
+        {
+            Username = accountName,
+            IsPersistentSession = false,
+            Authenticator = new UserConsoleAuthenticator()
+        };
+        configurator.Configure(details);
+
+        if (!string.Equals(details.Username, accountName, StringComparison.Ordinal))
+            throw new InvalidOperationException("The external Steam credential source cannot change the account name.");
+        if (details.IsPersistentSession)
+            throw new InvalidOperationException("The external Steam credential source cannot request persistence.");
+
+        return details;
+    }
+}
+
 /// <summary>Maps SteamKit protocol responses to SAM's credential-free transport result.</summary>
 public static class SteamKitAuthenticationResultMapper
 {
@@ -122,12 +162,12 @@ public static class SteamKitAuthenticationResultMapper
 
 internal sealed class SteamKitAuthenticationSession : ISteamKitAuthenticationSession
 {
-    private readonly IExternalSteamLogOnConfigurator _configurator;
+    private readonly IExternalSteamAuthSessionConfigurator _configurator;
     private readonly SteamClient _client = new();
     private readonly CallbackManager _callbacks;
     private int _authenticationStarted;
 
-    public SteamKitAuthenticationSession(IExternalSteamLogOnConfigurator configurator)
+    public SteamKitAuthenticationSession(IExternalSteamAuthSessionConfigurator configurator)
     {
         _configurator = configurator ?? throw new ArgumentNullException(nameof(configurator));
         _callbacks = new CallbackManager(_client);
@@ -142,15 +182,7 @@ internal sealed class SteamKitAuthenticationSession : ISteamKitAuthenticationSes
         var completion = new TaskCompletionSource<SteamAuthenticationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var connected = _callbacks.Subscribe<SteamClient.ConnectedCallback>(callback =>
         {
-            try
-            {
-                var steamUser = _client.GetHandler<SteamUser>() ?? throw new InvalidOperationException("SteamKit user handler is unavailable.");
-                steamUser.LogOn(SteamKitLogOnDetailsFactory.Create(accountName, _configurator));
-            }
-            catch
-            {
-                completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be started."));
-            }
+            _ = BeginModernAuthenticationAsync(accountName, completion, cancellationToken);
         });
         using var loggedOn = _callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
             completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString())));
@@ -163,6 +195,38 @@ internal sealed class SteamKitAuthenticationSession : ISteamKitAuthenticationSes
             await _callbacks.RunWaitCallbackAsync(cancellationToken).ConfigureAwait(false);
 
         return await completion.Task.ConfigureAwait(false);
+    }
+
+    private async Task BeginModernAuthenticationAsync(string accountName, TaskCompletionSource<SteamAuthenticationResult> completion, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var details = SteamKitAuthSessionDetailsFactory.Create(accountName, _configurator);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var authSession = await _client.Authentication.BeginAuthSessionViaCredentialsAsync(details).ConfigureAwait(false);
+            var pollResult = await authSession.PollingWaitForResultAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!string.Equals(pollResult.AccountName, accountName, StringComparison.Ordinal))
+                throw new InvalidOperationException("Steam authentication returned an unexpected account name.");
+
+            var steamUser = _client.GetHandler<SteamUser>() ?? throw new InvalidOperationException("SteamKit user handler is unavailable.");
+            steamUser.LogOn(new SteamUser.LogOnDetails
+            {
+                Username = pollResult.AccountName,
+                AccessToken = pollResult.RefreshToken,
+                ShouldRememberPassword = false
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            completion.TrySetCanceled(cancellationToken);
+        }
+        catch
+        {
+            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed."));
+        }
     }
 
     public ValueTask DisposeAsync()
