@@ -69,10 +69,12 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: plugin metadata IPC validates complete result contracts before sending or accepting metadata
 - [x] M2: account SQLite storage uses WAL, a bounded busy timeout, cancellation-aware writes, and concurrent-write coverage
 - [x] M2: Task Center never restarts records that have already reached a terminal state
+- [x] M2: local release publishing reuses the script's runtime-aware restore instead of restoring dependencies again
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
 - `dotnet test SAM.slnx --no-build` — passed, 60/60 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 60/60 tests
+- `pwsh -NoProfile -File .\scripts\build.ps1` — passed; published desktop and broker artifacts with a 16-entry SHA-256 manifest
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
