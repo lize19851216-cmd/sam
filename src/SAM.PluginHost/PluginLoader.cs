@@ -1,8 +1,9 @@
 ﻿using System.Reflection;
 using SAM.Core.Plugins;
 namespace SAM.PluginHost;
-public sealed class PluginLoader {
+public sealed class PluginLoader(PluginIsolationPolicy? isolationPolicy = null) {
     private PluginRuntime? _runtime;
+    private readonly PluginIsolationPolicy _isolationPolicy = isolationPolicy ?? new PluginIsolationPolicy();
 
     public PluginUnloadReport Unload() => _runtime?.Stop() ?? new([], []);
 
@@ -17,8 +18,9 @@ public sealed class PluginLoader {
         var trustPolicy = PluginTrustPolicy.FromManifest(directory);
         foreach (var file in Directory.EnumerateFiles(directory,"*.dll").OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
             try {
-                if (!trustPolicy.IsTrusted(file)) {
-                    failures.Add(new(file, $"Assembly hash is not listed in {PluginTrustPolicy.ManifestFileName}."));
+                var decision = _isolationPolicy.Decide(file, trustPolicy);
+                if (!decision.CanExecute) {
+                    failures.Add(new(file, decision.Message));
                     continue;
                 }
                 var asm = Assembly.LoadFrom(file);

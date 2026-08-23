@@ -242,6 +242,50 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_isolation_policy_rejects_untrusted_assemblies_before_execution()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var assemblyPath = Path.Combine(directory, "unreviewed.dll");
+        try
+        {
+            File.WriteAllText(assemblyPath, "unreviewed plugin payload");
+
+            var decision = new PluginIsolationPolicy().Decide(assemblyPath, PluginTrustPolicy.FromManifest(directory));
+
+            Assert.False(decision.CanExecute);
+            Assert.Equal(PluginExecutionMode.Rejected, decision.Mode);
+            Assert.Contains("cannot execute in-process", decision.Message);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Plugin_isolation_policy_allows_only_reviewed_assemblies_in_process()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var assemblyPath = Path.Combine(directory, "reviewed.dll");
+        try
+        {
+            File.WriteAllText(assemblyPath, "reviewed plugin payload");
+            File.WriteAllText(Path.Combine(directory, PluginTrustPolicy.ManifestFileName), PluginTrustPolicy.CalculateHash(assemblyPath));
+
+            var decision = new PluginIsolationPolicy().Decide(assemblyPath, PluginTrustPolicy.FromManifest(directory));
+
+            Assert.True(decision.CanExecute);
+            Assert.Equal(PluginExecutionMode.TrustedInProcess, decision.Mode);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Named_pipe_isolation_host_round_trips_metadata_only()
     {
         var pipeName = $"sam-test-{Guid.NewGuid():N}";
