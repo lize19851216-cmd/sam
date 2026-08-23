@@ -1,0 +1,54 @@
+using SAM.Core.Steam;
+using SAM.Infrastructure.Steam;
+using Xunit;
+
+namespace SAM.Core.Tests;
+
+public sealed class NamedPipeSteamAuthenticationBrokerTests
+{
+    [Fact]
+    public async Task Broker_round_trip_exchanges_only_a_secret_free_request_and_sanitized_response()
+    {
+        var pipeName = $"sam-steam-broker-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var server = NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, (request, _) =>
+        {
+            Assert.Equal("mock_0001", request.AccountName);
+            return Task.FromResult(new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "76561190000000001", "mock"));
+        }, timeout.Token);
+
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("mock_0001", timeout.Token);
+        await server;
+
+        Assert.Equal(SteamAuthenticationStatus.Online, result.Status);
+        Assert.Equal("Steam authentication succeeded.", result.Message);
+        Assert.Equal("76561190000000001", result.SteamId);
+        Assert.Equal("mock", result.PersonaName);
+    }
+
+    [Fact]
+    public async Task Unavailable_broker_returns_a_sanitized_failure()
+    {
+        var result = await new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromMilliseconds(100)).AuthenticateAsync("mock_0001", CancellationToken.None);
+
+        Assert.Equal(SteamAuthenticationStatus.Failed, result.Status);
+        Assert.Equal("Steam authentication broker is unavailable.", result.Message);
+    }
+
+    [Fact]
+    public async Task Caller_requested_cancellation_is_not_replaced_by_the_broker_timeout()
+    {
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromSeconds(5)).AuthenticateAsync("mock_0001", cancellation.Token));
+    }
+
+    [Fact]
+    public void Broker_endpoint_rejects_unsafe_pipe_names_and_broker_models_reject_invalid_data()
+    {
+        Assert.Throws<ArgumentException>(() => new NamedPipeSteamAuthenticationBroker("sam/steam"));
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("bad\nname").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "not-a-steam-id").Validate());
+    }
+}
