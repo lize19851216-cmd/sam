@@ -91,6 +91,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] Task Center UI serializes history loading and retention cleanup, with recoverable load-error handling
 - [x] Data safety: cancelled account mutations stop before opening a SQLite write operation
 - [x] Reliability: structured logs roll at 10 MiB in addition to the existing 14-file retention limit
+- [x] Task Center UI defers a requested history refresh until an active history operation completes
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)

@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private const int TaskHistoryPageSize = 200;
     private const int TaskHistoryRetentionDays = 90;
     private SamTaskHistoryCursor? _taskHistoryCursor;
+    private bool _taskHistoryRefreshPending;
     private CancellationTokenSource? _loginCancellation;
     private bool _externalBrokerEnabled;
 
@@ -478,14 +479,23 @@ public partial class MainWindow : Window
     private async Task RefreshTasksAsync()
     {
         var operationLease = _taskHistoryOperationGate.TryEnter();
-        if (operationLease is null) return;
+        if (operationLease is null)
+        {
+            _taskHistoryRefreshPending = true;
+            return;
+        }
 
         using (operationLease)
         {
             SetTaskHistoryControls(isEnabled: false);
-            try { await RefreshTasksCoreAsync(); }
+            try
+            {
+                _taskHistoryRefreshPending = false;
+                await RefreshTasksCoreAsync();
+            }
             finally { SetTaskHistoryControls(isEnabled: true); }
         }
+        await RefreshPendingTaskHistoryAsync();
     }
 
     private async Task RefreshTasksCoreAsync()
@@ -515,6 +525,7 @@ public partial class MainWindow : Window
             }
             finally { SetTaskHistoryControls(isEnabled: true); }
         }
+        await RefreshPendingTaskHistoryAsync();
     }
 
     private async void PruneTaskHistory_Click(object sender, RoutedEventArgs e)
@@ -550,6 +561,7 @@ public partial class MainWindow : Window
             }
             finally { SetTaskHistoryControls(isEnabled: true); }
         }
+        await RefreshPendingTaskHistoryAsync();
     }
 
     private async Task LoadTaskHistoryPageAsync(bool reset = false)
@@ -564,6 +576,13 @@ public partial class MainWindow : Window
     {
         PruneTaskHistoryButton.IsEnabled = isEnabled;
         LoadMoreTasksButton.IsEnabled = isEnabled && _taskHistoryCursor is not null;
+    }
+
+    private async Task RefreshPendingTaskHistoryAsync()
+    {
+        if (!_taskHistoryRefreshPending) return;
+        _taskHistoryRefreshPending = false;
+        await RefreshTasksAsync();
     }
 
     private void TaskCenter_TaskChanged(object? sender, SamTaskUpdate update)
