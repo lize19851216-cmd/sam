@@ -119,12 +119,44 @@ public sealed class SqliteTaskStore : ISamTaskStore
         command.Parameters.AddWithValue("$limit", limit);
         command.Parameters.AddWithValue("$offset", offset);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-            tasks.Add(new SamTaskRecord {
-                Id = Guid.Parse(reader.GetString(0)), AccountId = Guid.Parse(reader.GetString(1)), TaskType = reader.GetString(2),
-                Status = (SamTaskStatus)reader.GetInt32(3), RetryCount = reader.GetInt32(4), Message = reader.GetString(5),
-                CreatedAt = DateTimeOffset.Parse(reader.GetString(6)), StartedAt = reader.IsDBNull(7) ? null : DateTimeOffset.Parse(reader.GetString(7)),
-                CompletedAt = reader.IsDBNull(8) ? null : DateTimeOffset.Parse(reader.GetString(8)), UpdatedAt = DateTimeOffset.Parse(reader.GetString(9)) });
+        while (await reader.ReadAsync(cancellationToken)) tasks.Add(ReadTask(reader));
         return tasks;
     }
+
+    /// <summary>Loads the next older page without being shifted by newer task updates.</summary>
+    public async Task<SamTaskHistoryPage> GetPageAfterAsync(SamTaskHistoryCursor? cursor, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit <= 0) return new([], null);
+        var tasks = new List<SamTaskRecord>();
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Id,AccountId,TaskType,Status,RetryCount,Message,CreatedAt,StartedAt,CompletedAt,UpdatedAt
+            FROM Tasks
+            WHERE $cursorUpdatedAt IS NULL
+               OR UpdatedAt < $cursorUpdatedAt
+               OR (UpdatedAt = $cursorUpdatedAt AND Id < $cursorId)
+            ORDER BY UpdatedAt DESC, Id DESC
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$cursorUpdatedAt", (object?)cursor?.UpdatedAt.ToString("O") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cursorId", (object?)cursor?.Id.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$limit", limit);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) tasks.Add(ReadTask(reader));
+
+        var nextCursor = tasks.Count == limit
+            ? new SamTaskHistoryCursor(tasks[^1].UpdatedAt, tasks[^1].Id)
+            : null;
+        return new(tasks, nextCursor);
+    }
+
+    private static SamTaskRecord ReadTask(SqliteDataReader reader) => new()
+    {
+        Id = Guid.Parse(reader.GetString(0)), AccountId = Guid.Parse(reader.GetString(1)), TaskType = reader.GetString(2),
+        Status = (SamTaskStatus)reader.GetInt32(3), RetryCount = reader.GetInt32(4), Message = reader.GetString(5),
+        CreatedAt = DateTimeOffset.Parse(reader.GetString(6)), StartedAt = reader.IsDBNull(7) ? null : DateTimeOffset.Parse(reader.GetString(7)),
+        CompletedAt = reader.IsDBNull(8) ? null : DateTimeOffset.Parse(reader.GetString(8)), UpdatedAt = DateTimeOffset.Parse(reader.GetString(9))
+    };
 }
