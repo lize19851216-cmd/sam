@@ -45,4 +45,12 @@ foreach ($line in Get-Content -LiteralPath $manifestPath) {
 }
 
 if ($verified -eq 0) { throw "Checksum manifest contains no artifact entries." }
+
+foreach ($publishedFile in Get-ChildItem -LiteralPath $artifactRoot -Recurse -File | Where-Object FullName -ne $manifestPath) {
+    $publishedRelativePath = [IO.Path]::GetRelativePath($artifactRoot, $publishedFile.FullName)
+    if (-not $seenPaths.Contains($publishedRelativePath)) {
+        throw "Published artifact is missing from the checksum manifest: $publishedRelativePath"
+    }
+}
+
 Write-Host "Verified $verified published artifact checksums." -ForegroundColor Green
