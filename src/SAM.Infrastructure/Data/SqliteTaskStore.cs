@@ -6,13 +6,20 @@ namespace SAM.Infrastructure.Data;
 /// <summary>SQLite-backed Task Center store. Each operation owns its connection for safe concurrent workers.</summary>
 public sealed class SqliteTaskStore : ISamTaskStore
 {
+    private const int BusyTimeoutSeconds = 5;
     private readonly string _connectionString;
     public SqliteTaskStore(string databasePath)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
         // Short-lived connections avoid retaining file handles across Task Center operations.
-        _connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false }.ToString();
+        // The timeout lets the small number of concurrent worker writes wait for SQLite's single writer lock.
+        _connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Pooling = false,
+            DefaultTimeout = BusyTimeoutSeconds
+        }.ToString();
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -21,6 +28,7 @@ public sealed class SqliteTaskStore : ISamTaskStore
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
+            PRAGMA journal_mode = WAL;
             CREATE TABLE IF NOT EXISTS Tasks (
                 Id TEXT PRIMARY KEY, AccountId TEXT NOT NULL, TaskType TEXT NOT NULL,
                 Status INTEGER NOT NULL, RetryCount INTEGER NOT NULL, Message TEXT NOT NULL,

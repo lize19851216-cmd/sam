@@ -242,6 +242,31 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Sqlite_task_store_persists_concurrent_worker_writes()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");
+        try
+        {
+            var store = new SqliteTaskStore(path);
+            await store.InitializeAsync();
+            var tasks = Enumerable.Range(1, 32).Select(index => new SamTaskRecord
+            {
+                AccountId = Guid.NewGuid(),
+                TaskType = $"Login-{index}",
+                Status = SamTaskStatus.Succeeded,
+                Message = "done"
+            }).ToArray();
+
+            await Task.WhenAll(tasks.Select(task => store.SaveAsync(task)));
+
+            var persisted = await store.GetPageAsync(0, tasks.Length);
+            Assert.Equal(tasks.Length, persisted.Count);
+            Assert.Equal(tasks.Select(task => task.Id).Order(), persisted.Select(task => task.Id).Order());
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void Plugin_isolation_endpoint_rejects_unsafe_pipe_names()
     {
         Assert.Equal("sam-plugin_01", PluginIsolationEndpoint.ValidatePipeName("sam-plugin_01"));
