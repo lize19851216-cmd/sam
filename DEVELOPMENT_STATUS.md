@@ -55,10 +55,11 @@ Milestone 1 — safe SteamKit transport foundation
 - [x] M2: implement a separately launched, one-request console broker that owns interactive credentials in memory only
 - [x] M2: CI and local release build publish the separately launched authentication broker as its own Windows artifact
 - [x] M2: desktop offers an explicit, confirmed external-broker selection while defaulting to FakeSteamClient on every start
+- [x] M2: automated no-credential end-to-end verification covers broker, Steam adapter, Worker Pool, and Task Center states
 - [ ] M2: perform explicit user-approved integration validation only with an externally managed test environment (no real credential supplied to SAM)
 
 ## Verification (2026-08-23)
 - `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors (current environment reports `NU1900` because NuGet vulnerability-index access is unavailable)
-- `dotnet test SAM.slnx --no-build` — passed, 47/47 tests
+- `dotnet test SAM.slnx --no-build` — passed, 49/49 tests
 - CI-equivalent `win-x64` self-contained single-file publish for desktop and authentication broker — passed
