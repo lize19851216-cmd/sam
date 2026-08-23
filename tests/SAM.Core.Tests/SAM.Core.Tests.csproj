@@ -7,5 +7,6 @@
     <ProjectReference Include="../../src/SAM.Core/SAM.Core.csproj" />
     <ProjectReference Include="../../src/SAM.Infrastructure/SAM.Infrastructure.csproj" />
     <ProjectReference Include="../../src/SAM.PluginHost/SAM.PluginHost.csproj" />
+    <ProjectReference Include="../../src/SAM.SteamBroker/SAM.SteamBroker.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>
