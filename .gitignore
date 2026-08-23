@@ -1,0 +1,10 @@
+# .NET build outputs and IDE-local state are reproducible and must not be versioned.
+[Bb]in/
+[Oo]bj/
+TestResults/
+artifacts/
+
+# User- and machine-specific IDE settings.
+.vs/
+*.user
+*.suo

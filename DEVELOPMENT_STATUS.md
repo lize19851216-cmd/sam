@@ -76,6 +76,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: external-broker login requires exactly one non-mock account and forces concurrency to 1
 - [x] M3: desktop single-account validation reuses the local broker protocol's account-name limits
 - [x] M3: local broker protocol rejects simulated `mock_` accounts at the boundary, not only in the desktop UI
+- [x] Release hygiene: reproducible .NET build outputs are excluded from source control
 - [ ] M3: user-owned real-account manual smoke test through the local broker (requires the user to enter credentials locally; no automated credential handling)
 
 ## Verification (2026-08-23)
