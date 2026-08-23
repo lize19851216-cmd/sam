@@ -1,6 +1,16 @@
 ﻿$ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+$publishDirectories = @(".\artifacts\SAM", ".\artifacts\SAM.SteamBroker")
+foreach ($directory in $publishDirectories) {
+    if (Test-Path -LiteralPath $directory -PathType Container) {
+        Remove-Item -LiteralPath $directory -Recurse -Force
+    }
+}
+$checksumPath = ".\artifacts\SHA256SUMS.txt"
+if (Test-Path -LiteralPath $checksumPath -PathType Leaf) {
+    Remove-Item -LiteralPath $checksumPath -Force
+}
 dotnet restore .\SAM.slnx -r win-x64
 dotnet build .\SAM.slnx -c Release --no-restore
 dotnet test .\tests\SAM.Core.Tests\SAM.Core.Tests.csproj -c Release --no-build
