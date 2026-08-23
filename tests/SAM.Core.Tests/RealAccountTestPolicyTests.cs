@@ -29,6 +29,14 @@ public sealed class RealAccountTestPolicyTests
     }
 
     [Fact]
+    public void External_test_and_broker_protocol_share_the_same_account_name_length_limit()
+    {
+        Assert.Equal(
+            Steam.SteamAuthenticationBrokerRequest.MaximumAccountNameLength,
+            RealAccountTestPolicy.MaximumAccountNameLength);
+    }
+
+    [Fact]
     public void External_broker_requires_exactly_one_non_simulated_account()
     {
         RealAccountTestPolicy.EnsureSingleExternalTestAccount([new Account { AccountName = "user_owned_account" }]);

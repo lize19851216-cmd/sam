@@ -10,6 +10,8 @@ public enum SteamAuthenticationBrokerRequestKind { Authenticate, Probe }
 /// <summary>Secret-free request sent from SAM to a separately controlled local authentication broker.</summary>
 public sealed record SteamAuthenticationBrokerRequest(string AccountName, SteamAuthenticationBrokerRequestKind Kind = SteamAuthenticationBrokerRequestKind.Authenticate)
 {
+    public const int MaximumAccountNameLength = 64;
+
     public void Validate()
     {
         if (!Enum.IsDefined(Kind))
@@ -22,7 +24,7 @@ public sealed record SteamAuthenticationBrokerRequest(string AccountName, SteamA
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(AccountName);
-        if (AccountName.Length > 64 || AccountName.Any(char.IsControl))
+        if (AccountName.Length > MaximumAccountNameLength || AccountName.Any(char.IsControl))
             throw new ArgumentException("The account name is invalid.", nameof(AccountName));
     }
 }
