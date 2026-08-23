@@ -430,6 +430,19 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public async Task Named_pipe_isolation_host_rejects_oversized_response_before_writing()
+    {
+        var pipeName = $"sam-test-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var server = NamedPipePluginIsolationHost.ServeOnceAsync(pipeName, (_, _) =>
+            Task.FromResult(new PluginIsolationResult(true, "accepted", [new PluginMetadata("sample", new string('x', 1_048_576), "1.0")])), timeout.Token);
+
+        await Assert.ThrowsAnyAsync<IOException>(() =>
+            new NamedPipePluginIsolationHost(pipeName).InspectAsync(new PluginIsolationRequest("plugin.dll", new string('A', 64)), timeout.Token));
+        await Assert.ThrowsAsync<InvalidDataException>(() => server);
+    }
+
+    [Fact]
     public void Plugin_runtime_stops_plugins_in_reverse_order_and_only_once()
     {
         var lifecycle = new List<string>();
