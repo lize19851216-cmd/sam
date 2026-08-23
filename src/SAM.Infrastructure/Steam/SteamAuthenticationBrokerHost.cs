@@ -17,8 +17,15 @@ public sealed class SteamAuthenticationBrokerHost(ISteamAuthenticationTransport 
     /// <summary>Continues serving local requests until the separately controlled broker is cancelled.</summary>
     public async Task ServeUntilCancelledAsync(string pipeName, CancellationToken cancellationToken = default)
     {
-        while (!cancellationToken.IsCancellationRequested)
-            await ServeOnceAsync(pipeName, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+                await ServeOnceAsync(pipeName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancellation is the normal shutdown path for the standalone broker.
+        }
     }
 
     private async Task<SteamAuthenticationBrokerResponse> AuthenticateAsync(SteamAuthenticationBrokerRequest request, CancellationToken cancellationToken)

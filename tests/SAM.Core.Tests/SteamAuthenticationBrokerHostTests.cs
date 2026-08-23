@@ -1,5 +1,6 @@
 using SAM.Core.Steam;
 using SAM.Infrastructure.Steam;
+using System.Diagnostics;
 using Xunit;
 
 namespace SAM.Core.Tests;
@@ -65,8 +66,50 @@ public sealed class SteamAuthenticationBrokerHostTests
         Assert.True(await broker.ProbeAsync(cancellation.Token));
         cancellation.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => server);
+        await server;
         Assert.False(transport.WasCalled);
+    }
+
+    [Fact]
+    public async Task Standalone_broker_accepts_repeated_credential_free_probes_without_requesting_login_data()
+    {
+        var pipeName = $"sam-broker-smoke-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = GetBrokerExecutablePath(),
+            Arguments = pipeName,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        }) ?? throw new InvalidOperationException("Failed to start the standalone broker.");
+
+        try
+        {
+            var startup = await process.StandardOutput.ReadLineAsync(timeout.Token);
+            Assert.Contains("waiting for local requests", startup, StringComparison.Ordinal);
+            var broker = new NamedPipeSteamAuthenticationBroker(pipeName);
+            Assert.True(await broker.ProbeAsync(timeout.Token));
+            Assert.True(await broker.ProbeAsync(timeout.Token));
+            Assert.False(process.HasExited);
+        }
+        finally
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(timeout.Token);
+        }
+    }
+
+    private static string GetBrokerExecutablePath()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SAM.slnx"))) directory = directory.Parent;
+        if (directory is null) throw new InvalidOperationException("Could not locate the SAM repository root.");
+
+        var brokerOutput = Path.Combine(directory.FullName, "src", "SAM.SteamBroker", "bin");
+        var configuration = Directory.Exists(Path.Combine(brokerOutput, "Debug", "net10.0")) ? "Debug" : "Release";
+        return Path.Combine(brokerOutput, configuration, "net10.0", "SAM.SteamBroker.exe");
     }
 
     private sealed class StubTransport(SteamAuthenticationResult result) : ISteamAuthenticationTransport
