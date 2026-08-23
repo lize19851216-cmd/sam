@@ -5,16 +5,19 @@ using System.Text.Json;
 
 namespace SAM.PluginHost;
 
-/// <summary>Metadata-only local IPC transport. The caller must launch any restricted child process separately.</summary>
-public sealed class NamedPipePluginIsolationHost(string pipeName) : IIsolatedPluginHost
+/// <summary>Metadata-only local IPC transport restricted to the current user. The caller must launch any restricted child process separately.</summary>
+public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly string _pipeName;
+
+    public NamedPipePluginIsolationHost(string pipeName) => _pipeName = PluginIsolationEndpoint.ValidatePipeName(pipeName);
 
     public async Task<PluginIsolationResult> InspectAsync(PluginIsolationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         request.Validate();
-        await using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PluginIsolationEndpoint.LocalUserPipeOptions);
         await pipe.ConnectAsync(cancellationToken);
         await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), cancellationToken);
         var response = await ReadMessageAsync(pipe, cancellationToken);
@@ -23,7 +26,9 @@ public sealed class NamedPipePluginIsolationHost(string pipeName) : IIsolatedPlu
 
     public static async Task ServeOnceAsync(string pipeName, Func<PluginIsolationRequest, CancellationToken, Task<PluginIsolationResult>> inspect, CancellationToken cancellationToken = default)
     {
-        await using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        ArgumentNullException.ThrowIfNull(inspect);
+        pipeName = PluginIsolationEndpoint.ValidatePipeName(pipeName);
+        await using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PluginIsolationEndpoint.LocalUserPipeOptions);
         await pipe.WaitForConnectionAsync(cancellationToken);
         var line = await ReadMessageAsync(pipe, cancellationToken);
         var request = JsonSerializer.Deserialize<PluginIsolationRequest>(line, JsonOptions) ?? throw new InvalidDataException("Invalid isolated plugin host request.");

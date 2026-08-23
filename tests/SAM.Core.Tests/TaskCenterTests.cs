@@ -242,6 +242,15 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_isolation_endpoint_rejects_unsafe_pipe_names()
+    {
+        Assert.Equal("sam-plugin_01", PluginIsolationEndpoint.ValidatePipeName("sam-plugin_01"));
+        Assert.Throws<ArgumentException>(() => PluginIsolationEndpoint.ValidatePipeName("sam/plugin"));
+        Assert.Throws<ArgumentException>(() => new NamedPipePluginIsolationHost("sam plugin"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PluginIsolationEndpoint.ValidatePipeName(new string('a', PluginIsolationEndpoint.MaximumPipeNameLength + 1)));
+    }
+
+    [Fact]
     public void Plugin_isolation_policy_rejects_untrusted_assemblies_before_execution()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"sam-plugin-{Guid.NewGuid():N}");
