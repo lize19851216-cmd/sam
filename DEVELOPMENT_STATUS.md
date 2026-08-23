@@ -7,6 +7,8 @@ Milestone 1 — SteamKit adapter preparation
 - [x] FakeSteamClient
 - [x] Worker Pool
 - [x] GitHub Actions
+- [x] GitHub Actions restores Windows runtime assets before self-contained publish
+- [x] Microsoft.Data.Sqlite upgraded to 10.0.11 to remove the reported SQLite native-library vulnerability
 - [x] SQLite task persistence (`Tasks` table, concurrent-safe connections)
 - [x] Structured Serilog file logging (application enrichment and JSON properties)
 - [x] Task state transition logging with structured task and account properties
@@ -44,6 +46,7 @@ Milestone 1 — SteamKit adapter preparation
 - [ ] M1 SteamKit transport implementation (without storing credentials in SAM)
 
 ## Verification (2026-08-23)
-- `dotnet restore SAM.slnx` — passed (NuGet audit index unavailable locally: NU1900 warning only)
+- `dotnet restore SAM.slnx` — passed
 - `dotnet build SAM.slnx --no-restore` — passed, 0 errors
 - `dotnet test SAM.slnx --no-build` — passed, 28/28 tests
+- CI-equivalent `win-x64` self-contained single-file publish — passed
