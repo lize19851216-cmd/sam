@@ -13,11 +13,11 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var server = NamedPipeSteamAuthenticationBroker.ServeOnceAsync(pipeName, (request, _) =>
         {
-            Assert.Equal("mock_0001", request.AccountName);
+            Assert.Equal("test_account_0001", request.AccountName);
             return Task.FromResult(new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "76561190000000001", "mock"));
         }, timeout.Token);
 
-        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("mock_0001", timeout.Token);
+        var result = await new NamedPipeSteamAuthenticationBroker(pipeName).AuthenticateAsync("test_account_0001", timeout.Token);
         await server;
 
         Assert.Equal(SteamAuthenticationStatus.Online, result.Status);
@@ -29,7 +29,7 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
     [Fact]
     public async Task Unavailable_broker_returns_a_sanitized_failure()
     {
-        var result = await new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromMilliseconds(100)).AuthenticateAsync("mock_0001", CancellationToken.None);
+        var result = await new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromMilliseconds(100)).AuthenticateAsync("test_account_0001", CancellationToken.None);
 
         Assert.Equal(SteamAuthenticationStatus.Failed, result.Status);
         Assert.Equal("Steam authentication broker is unavailable.", result.Message);
@@ -41,7 +41,7 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromSeconds(5)).AuthenticateAsync("mock_0001", cancellation.Token));
+            new NamedPipeSteamAuthenticationBroker($"sam-steam-broker-{Guid.NewGuid():N}", TimeSpan.FromSeconds(5)).AuthenticateAsync("test_account_0001", cancellation.Token));
     }
 
     [Fact]
@@ -67,6 +67,8 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
     {
         Assert.Throws<ArgumentException>(() => new NamedPipeSteamAuthenticationBroker("sam/steam"));
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("bad\nname").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("MOCK_0001").Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001", SteamAuthenticationBrokerRequestKind.Probe).Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerResponse(SteamAuthenticationStatus.Online, "not-a-steam-id").Validate());
     }

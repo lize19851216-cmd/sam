@@ -11,7 +11,7 @@ public sealed class ExternalSteamBrokerEndToEndTests
     [Fact]
     public async Task Explicit_external_broker_path_completes_a_login_without_credentials_in_sam()
     {
-        var account = new Account { AccountName = "mock_0001" };
+        var account = new Account { AccountName = "test_account_0001" };
         var pipeName = $"sam-e2e-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var server = new SteamAuthenticationBrokerHost(new StubTransport(new SteamAuthenticationResult(
@@ -38,7 +38,7 @@ public sealed class ExternalSteamBrokerEndToEndTests
     [Fact]
     public async Task External_broker_steam_guard_result_remains_non_secret_and_non_retryable()
     {
-        var account = new Account { AccountName = "mock_0002" };
+        var account = new Account { AccountName = "test_account_0002" };
         var pipeName = $"sam-e2e-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var server = new SteamAuthenticationBrokerHost(new StubTransport(new SteamAuthenticationResult(
