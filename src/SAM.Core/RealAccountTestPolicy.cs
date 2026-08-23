@@ -6,7 +6,7 @@ namespace SAM.Core;
 /// </summary>
 public static class RealAccountTestPolicy
 {
-    public const int MaximumAccountNameLength = 64;
+    public const int MaximumAccountNameLength = Steam.SteamAuthenticationBrokerRequest.MaximumAccountNameLength;
 
     public static bool IsSimulatedAccountName(string? accountName) =>
         accountName?.StartsWith("mock_", StringComparison.OrdinalIgnoreCase) == true;
@@ -17,8 +17,7 @@ public static class RealAccountTestPolicy
             throw new ArgumentException("An account name is required.", nameof(accountName));
 
         var normalized = accountName.Trim();
-        if (normalized.Length > MaximumAccountNameLength || normalized.Any(char.IsControl))
-            throw new ArgumentException("The account name contains unsupported characters.", nameof(accountName));
+        new Steam.SteamAuthenticationBrokerRequest(normalized).Validate();
 
         if (IsSimulatedAccountName(normalized))
             throw new ArgumentException("Simulated accounts cannot use the external authentication broker.", nameof(accountName));
