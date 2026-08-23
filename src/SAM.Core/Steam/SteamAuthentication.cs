@@ -24,6 +24,8 @@ public sealed record SteamAuthenticationBrokerRequest(string AccountName, SteamA
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(AccountName);
+        if (!string.Equals(AccountName, AccountName.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException("The account name must not have leading or trailing whitespace.", nameof(AccountName));
         if (AccountName.Length > MaximumAccountNameLength || AccountName.Any(char.IsControl))
             throw new ArgumentException("The account name is invalid.", nameof(AccountName));
         if (AccountName.StartsWith("mock_", StringComparison.OrdinalIgnoreCase))

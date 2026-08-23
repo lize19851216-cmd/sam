@@ -89,6 +89,7 @@ public sealed class NamedPipeSteamAuthenticationBrokerTests
     {
         Assert.Throws<ArgumentException>(() => new NamedPipeSteamAuthenticationBroker("sam/steam"));
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("bad\nname").Validate());
+        Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest(" account_with_padding ").Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001").Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("MOCK_0001").Validate());
         Assert.Throws<ArgumentException>(() => new SteamAuthenticationBrokerRequest("mock_0001", SteamAuthenticationBrokerRequestKind.Probe).Validate());
