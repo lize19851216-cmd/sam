@@ -11,8 +11,29 @@ public sealed record PluginIsolationRequest(string AssemblyPath, string Expected
     }
 }
 
-public sealed record PluginIsolationResult(bool Accepted, string Message, IReadOnlyList<PluginMetadata> Plugins);
-public sealed record PluginMetadata(string Id, string Name, string Version);
+public sealed record PluginIsolationResult(bool Accepted, string Message, IReadOnlyList<PluginMetadata> Plugins)
+{
+    public void Validate()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Message);
+        ArgumentNullException.ThrowIfNull(Plugins);
+        foreach (var plugin in Plugins)
+        {
+            ArgumentNullException.ThrowIfNull(plugin);
+            plugin.Validate();
+        }
+    }
+}
+
+public sealed record PluginMetadata(string Id, string Name, string Version)
+{
+    public void Validate()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(Name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(Version);
+    }
+}
 
 /// <summary>Boundary for a future restricted IPC implementation. The in-process loader does not implement this contract.</summary>
 public interface IIsolatedPluginHost

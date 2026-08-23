@@ -271,6 +271,14 @@ public sealed class TaskCenterTests
     }
 
     [Fact]
+    public void Plugin_isolation_result_requires_complete_metadata()
+    {
+        Assert.Throws<ArgumentException>(() => new PluginIsolationResult(true, "", []).Validate());
+        Assert.Throws<ArgumentException>(() => new PluginIsolationResult(true, "accepted", [new PluginMetadata("", "Sample", "1.0")]).Validate());
+        Assert.Throws<ArgumentNullException>(() => new PluginIsolationResult(true, "accepted", null!).Validate());
+    }
+
+    [Fact]
     public async Task Sqlite_store_cursor_pagination_is_not_shifted_by_newer_tasks()
     {
         var path = Path.Combine(Path.GetTempPath(), $"sam-{Guid.NewGuid():N}.db");

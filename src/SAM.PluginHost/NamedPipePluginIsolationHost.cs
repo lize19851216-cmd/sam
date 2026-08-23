@@ -32,7 +32,9 @@ public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
         await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
         await WriteMessageAsync(pipe, JsonSerializer.Serialize(request, JsonOptions), timeout.Token).ConfigureAwait(false);
         var response = await ReadMessageAsync(pipe, timeout.Token).ConfigureAwait(false);
-        return JsonSerializer.Deserialize<PluginIsolationResult>(response, JsonOptions) ?? throw new InvalidDataException("Invalid isolated plugin host response.");
+        var result = JsonSerializer.Deserialize<PluginIsolationResult>(response, JsonOptions) ?? throw new InvalidDataException("Invalid isolated plugin host response.");
+        result.Validate();
+        return result;
     }
 
     public static async Task ServeOnceAsync(string pipeName, Func<PluginIsolationRequest, CancellationToken, Task<PluginIsolationResult>> inspect, CancellationToken cancellationToken = default)
@@ -44,7 +46,9 @@ public sealed class NamedPipePluginIsolationHost : IIsolatedPluginHost
         var line = await ReadMessageAsync(pipe, cancellationToken);
         var request = JsonSerializer.Deserialize<PluginIsolationRequest>(line, JsonOptions) ?? throw new InvalidDataException("Invalid isolated plugin host request.");
         request.Validate();
-        await WriteMessageAsync(pipe, JsonSerializer.Serialize(await inspect(request, cancellationToken), JsonOptions), cancellationToken);
+        var result = await inspect(request, cancellationToken);
+        result.Validate();
+        await WriteMessageAsync(pipe, JsonSerializer.Serialize(result, JsonOptions), cancellationToken);
     }
 
     private static async Task WriteMessageAsync(Stream stream, string message, CancellationToken cancellationToken)
