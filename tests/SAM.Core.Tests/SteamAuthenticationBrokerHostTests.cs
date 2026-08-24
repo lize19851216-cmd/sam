@@ -87,7 +87,7 @@ public sealed class SteamAuthenticationBrokerHostTests
     }
 
     [Fact]
-    public async Task Standalone_broker_accepts_repeated_credential_free_probes_without_requesting_login_data()
+    public async Task Standalone_qr_first_broker_accepts_repeated_credential_free_probes_without_requesting_login_data()
     {
         var pipeName = $"sam-broker-smoke-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -105,6 +105,9 @@ public sealed class SteamAuthenticationBrokerHostTests
         {
             var startup = await process.StandardOutput.ReadLineAsync(timeout.Token);
             Assert.Contains("waiting for local requests", startup, StringComparison.Ordinal);
+            var authenticationMode = await process.StandardOutput.ReadLineAsync(timeout.Token);
+            Assert.Contains("QR sign-in", authenticationMode, StringComparison.Ordinal);
+            Assert.DoesNotContain("Credentials are requested", authenticationMode, StringComparison.Ordinal);
             var broker = new NamedPipeSteamAuthenticationBroker(pipeName);
             Assert.True(await broker.ProbeAsync(timeout.Token));
             Assert.True(await broker.ProbeAsync(timeout.Token));
