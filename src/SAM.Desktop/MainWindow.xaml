@@ -35,7 +35,7 @@
        <TextBlock Text="单账号真实测试:" VerticalAlignment="Center"/>
        <TextBox x:Name="RealAccountNameBox" Width="180" Padding="5" Margin="6,0,0,0" IsEnabled="False"/>
        <Button x:Name="SaveSingleAccountButton" Content="保存单账号测试" Click="SaveSingleAccount_Click" Margin="6,0,0,0" Padding="10,4" IsEnabled="False"/>
-       <TextBlock Text="仅保存账号名并替换本地模拟列表；密码与 Steam Guard 仅在本地 Broker 窗口输入" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
+       <TextBlock Text="仅保存账号名并替换本地模拟列表；登录时在本地 Broker 窗口扫描一次性 Steam QR 码" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="DimGray"/>
      </StackPanel>
      </StackPanel>
    </Border>
