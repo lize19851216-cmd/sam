@@ -116,6 +116,8 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         var authenticationStarted = false;
         var pendingGuardReconnect = false;
         var guardRetryCount = 0;
+        var connectionRetryCount = 0;
+        var reconnectRequested = false;
 
         void StartOrResumeLogOn()
         {
@@ -139,6 +141,12 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         using var connected = callbacks.Subscribe<SteamClient.ConnectedCallback>(_ => StartOrResumeLogOn());
         using var loggedOn = callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
         {
+            if (callback.Result == EResult.TryAnotherCM && RequestReconnect())
+            {
+                Console.WriteLine("Steam requested another connection manager; retrying the current sign-in.");
+                return;
+            }
+
             if (finalLogOn is not null && TryApplyFinalSteamGuardCode(callback.Result, finalLogOn, ref guardRetryCount))
             {
                 pendingGuardReconnect = true;
@@ -150,9 +158,21 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         });
         using var disconnected = callbacks.Subscribe<SteamClient.DisconnectedCallback>(_ =>
         {
+            if (completion.Task.IsCompleted)
+                return;
+
             if (pendingGuardReconnect)
             {
                 pendingGuardReconnect = false;
+                client.Connect();
+                return;
+            }
+
+            if (reconnectRequested || connectionRetryCount < 3)
+            {
+                reconnectRequested = false;
+                connectionRetryCount++;
+                Console.WriteLine($"Steam connection changed; retrying ({connectionRetryCount}/3).");
                 client.Connect();
                 return;
             }
@@ -176,6 +196,16 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         {
             client.Disconnect();
         }
+
+        bool RequestReconnect()
+        {
+            if (connectionRetryCount >= 3)
+                return false;
+
+            reconnectRequested = true;
+            client.Disconnect();
+            return true;
+        }
     }
 
     private async Task BeginCredentialAuthenticationAsync(
@@ -187,6 +217,7 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
     {
         try
         {
+            Console.WriteLine("Starting the Steam credential session.");
             var authenticator = new UserConsoleAuthenticator();
             var details = new AuthSessionDetails
             {
@@ -223,10 +254,13 @@ internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         }
         catch (AuthenticationException exception)
         {
-            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(exception));
+            var result = SteamKitAuthenticationResultMapper.From(exception);
+            Console.WriteLine($"Steam credential session ended with the safe category: {result.Status}.");
+            completion.TrySetResult(result);
         }
         catch
         {
+            Console.WriteLine("Steam credential session ended before Steam returned a safe result category.");
             completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed."));
         }
     }
