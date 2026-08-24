@@ -8,6 +8,5 @@
   <ItemGroup>
     <ProjectReference Include="../SAM.Core/SAM.Core.csproj" />
     <ProjectReference Include="../SAM.Infrastructure/SAM.Infrastructure.csproj" />
-    <PackageReference Include="QRCoder" Version="1.8.0" />
   </ItemGroup>
 </Project>
