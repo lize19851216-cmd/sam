@@ -59,6 +59,14 @@ internal sealed class ConsoleSteamLogOnConfigurator
         authSessionDetails.IsPersistentSession = false;
     }
 
+    public static string ReadFinalSteamGuardCode(bool twoFactor)
+    {
+        Console.Write(twoFactor
+            ? "Steam Guard requires a mobile-authenticator code (type now, then press Enter): "
+            : "Steam Guard requires an email code (type now, then press Enter): ");
+        return ReadSecret();
+    }
+
     private static string ReadSecret()
     {
         var value = new List<char>();
@@ -112,15 +120,56 @@ internal sealed class OfficialSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         var callbacks = new CallbackManager(client);
         var steamUser = client.GetHandler<SteamUser>() ?? throw new InvalidOperationException("SteamKit user handler is unavailable.");
         var completion = new TaskCompletionSource<SteamAuthenticationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        SteamUser.LogOnDetails? finalLogOn = null;
+        var authenticationStarted = false;
+        var pendingGuardReconnect = false;
+        var guardRetryCount = 0;
+
+        void StartOrResumeLogOn()
+        {
+            if (finalLogOn is not null)
+            {
+                steamUser.LogOn(finalLogOn);
+                return;
+            }
+
+            if (authenticationStarted)
+                return;
+
+            authenticationStarted = true;
+            _ = BeginCredentialAuthenticationAsync(client, accountName, completion, cancellationToken, details =>
+            {
+                finalLogOn = details;
+                steamUser.LogOn(details);
+            });
+        }
 
         using var connected = callbacks.Subscribe<SteamClient.ConnectedCallback>(callback =>
         {
-            _ = BeginCredentialAuthenticationAsync(client, steamUser, accountName, completion, cancellationToken);
+            StartOrResumeLogOn();
         });
         using var loggedOn = callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
-            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult)));
+        {
+            if (finalLogOn is not null && TryApplyFinalSteamGuardCode(callback.Result, finalLogOn, ref guardRetryCount))
+            {
+                pendingGuardReconnect = true;
+                client.Disconnect();
+                return;
+            }
+
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult));
+        });
         using var disconnected = callbacks.Subscribe<SteamClient.DisconnectedCallback>(_ =>
-            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed.")));
+        {
+            if (pendingGuardReconnect)
+            {
+                pendingGuardReconnect = false;
+                client.Connect();
+                return;
+            }
+
+            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed."));
+        });
         using var cancellation = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
 
         try
@@ -142,16 +191,17 @@ internal sealed class OfficialSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
 
     private async Task BeginCredentialAuthenticationAsync(
         SteamClient client,
-        SteamUser steamUser,
         string accountName,
         TaskCompletionSource<SteamAuthenticationResult> completion,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<SteamUser.LogOnDetails> logOn)
     {
         try
         {
             var authenticator = new UserConsoleAuthenticator();
             var details = new AuthSessionDetails
             {
+                DeviceFriendlyName = "SAM",
                 Username = accountName,
                 IsPersistentSession = false,
                 Authenticator = authenticator
@@ -171,7 +221,7 @@ internal sealed class OfficialSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
             if (!string.Equals(pollResponse.AccountName, accountName, StringComparison.Ordinal))
                 throw new InvalidOperationException("Steam authentication returned an unexpected account name.");
 
-            steamUser.LogOn(new SteamUser.LogOnDetails
+            logOn(new SteamUser.LogOnDetails
             {
                 Username = pollResponse.AccountName,
                 AccessToken = pollResponse.RefreshToken,
@@ -190,5 +240,22 @@ internal sealed class OfficialSteamKitBrokerTransport(ConsoleSteamLogOnConfigura
         {
             completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed."));
         }
+    }
+
+    private static bool TryApplyFinalSteamGuardCode(EResult result, SteamUser.LogOnDetails logOnDetails, ref int retryCount)
+    {
+        var resultName = result.ToString();
+        var requiresEmailCode = resultName is "AccountLogonDenied" or "AccountLogonDeniedNoMail";
+        var requiresTwoFactorCode = resultName == "AccountLoginDeniedNeedTwoFactor";
+        if ((!requiresEmailCode && !requiresTwoFactorCode) || ++retryCount > 3)
+            return false;
+
+        var code = ConsoleSteamLogOnConfigurator.ReadFinalSteamGuardCode(requiresTwoFactorCode);
+        if (requiresTwoFactorCode)
+            logOnDetails.TwoFactorCode = code;
+        else
+            logOnDetails.AuthCode = code;
+
+        return true;
     }
 }
