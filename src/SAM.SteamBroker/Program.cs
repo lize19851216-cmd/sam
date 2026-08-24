@@ -1,4 +1,6 @@
+using SAM.Core.Steam;
 using SAM.Infrastructure.Steam;
+using SteamKit2;
 using SteamKit2.Authentication;
 using System.Runtime.InteropServices;
 
@@ -25,7 +27,10 @@ Console.CancelKeyPress += (_, eventArgs) =>
 try
 {
     var configurator = new ConsoleSteamLogOnConfigurator();
-    var transport = new SteamKitAuthenticationTransport(new SteamKitAuthenticationSessionFactory(configurator));
+    // Keep the desktop/broker boundary local and credential-free, but use the
+    // maintained SteamKit sample's direct client/callback model inside this
+    // user-controlled Broker process.
+    var transport = new OfficialSteamKitBrokerTransport(configurator);
     var host = new SteamAuthenticationBrokerHost(transport);
     await host.ServeUntilCancelledAsync(pipeName, cancellation.Token);
     return 0;
@@ -41,7 +46,7 @@ catch
     return 1;
 }
 
-internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamAuthSessionConfigurator
+internal sealed class ConsoleSteamLogOnConfigurator
 {
     public void Configure(AuthSessionDetails authSessionDetails)
     {
@@ -86,6 +91,104 @@ internal sealed class ConsoleSteamLogOnConfigurator : IExternalSteamAuthSessionC
         {
             CollectionsMarshal.AsSpan(value).Clear();
             value.Clear();
+        }
+    }
+}
+
+/// <summary>
+/// Direct adaptation of SteamKit's maintained authentication sample. This
+/// process is the only component that receives interactive credentials; it
+/// keeps them in memory for one request and never retains guard or refresh
+/// tokens after the authenticated logon callback completes.
+/// </summary>
+internal sealed class OfficialSteamKitBrokerTransport(ConsoleSteamLogOnConfigurator configurator) : ISteamAuthenticationTransport
+{
+    public async Task<SteamAuthenticationResult> AuthenticateAsync(string accountName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accountName);
+        ArgumentNullException.ThrowIfNull(configurator);
+
+        var client = new SteamClient();
+        var callbacks = new CallbackManager(client);
+        var steamUser = client.GetHandler<SteamUser>() ?? throw new InvalidOperationException("SteamKit user handler is unavailable.");
+        var completion = new TaskCompletionSource<SteamAuthenticationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var connected = callbacks.Subscribe<SteamClient.ConnectedCallback>(callback =>
+        {
+            _ = BeginCredentialAuthenticationAsync(client, steamUser, accountName, completion, cancellationToken);
+        });
+        using var loggedOn = callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult)));
+        using var disconnected = callbacks.Subscribe<SteamClient.DisconnectedCallback>(_ =>
+            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed.")));
+        using var cancellation = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+
+        try
+        {
+            client.Connect();
+            while (!completion.Task.IsCompleted)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                callbacks.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+            }
+
+            return await completion.Task.ConfigureAwait(false);
+        }
+        finally
+        {
+            client.Disconnect();
+        }
+    }
+
+    private async Task BeginCredentialAuthenticationAsync(
+        SteamClient client,
+        SteamUser steamUser,
+        string accountName,
+        TaskCompletionSource<SteamAuthenticationResult> completion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var authenticator = new UserConsoleAuthenticator();
+            var details = new AuthSessionDetails
+            {
+                Username = accountName,
+                IsPersistentSession = false,
+                Authenticator = authenticator
+            };
+            configurator.Configure(details);
+
+            if (!string.Equals(details.Username, accountName, StringComparison.Ordinal) ||
+                details.IsPersistentSession ||
+                !ReferenceEquals(details.Authenticator, authenticator))
+                throw new InvalidOperationException("The local credential prompt changed a protected authentication setting.");
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var authSession = await client.Authentication.BeginAuthSessionViaCredentialsAsync(details).ConfigureAwait(false);
+            var pollResponse = await authSession.PollingWaitForResultAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!string.Equals(pollResponse.AccountName, accountName, StringComparison.Ordinal))
+                throw new InvalidOperationException("Steam authentication returned an unexpected account name.");
+
+            steamUser.LogOn(new SteamUser.LogOnDetails
+            {
+                Username = pollResponse.AccountName,
+                AccessToken = pollResponse.RefreshToken,
+                ShouldRememberPassword = false
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            completion.TrySetCanceled(cancellationToken);
+        }
+        catch (AuthenticationException exception)
+        {
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(exception));
+        }
+        catch
+        {
+            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed."));
         }
     }
 }
