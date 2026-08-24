@@ -153,15 +153,32 @@ public static class SteamKitAuthenticationResultMapper
         return From(exception.Result);
     }
 
-    public static SteamAuthenticationResult From(EResult result, string? steamId = null) => result switch
+    public static SteamAuthenticationResult From(EResult result, string? steamId = null, EResult? extendedResult = null)
     {
-        EResult.OK => new(SteamAuthenticationStatus.Online, "Steam authentication succeeded.", steamId),
-        _ when IsInvalidSteamGuardCodeResult(result) => new(SteamAuthenticationStatus.InvalidSteamGuardCode, "Steam Guard code was rejected or expired."),
-        _ when IsSteamGuardResult(result) => new(SteamAuthenticationStatus.RequiresSteamGuard, "Steam Guard verification is required."),
-        _ when IsInvalidCredentialResult(result) => new(SteamAuthenticationStatus.InvalidCredentials, "Steam rejected the account name or password."),
-        _ when IsRateLimitedResult(result) => new(SteamAuthenticationStatus.RateLimited, "Steam temporarily limited this authentication attempt."),
-        _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
-    };
+        if (result == EResult.OK)
+            return new SteamAuthenticationResult(SteamAuthenticationStatus.Online, "Steam authentication succeeded.", steamId);
+
+        var diagnosticResult = SelectDiagnosticResult(result, extendedResult);
+        return diagnosticResult switch
+        {
+            _ when IsInvalidSteamGuardCodeResult(diagnosticResult) => new(SteamAuthenticationStatus.InvalidSteamGuardCode, "Steam Guard code was rejected or expired."),
+            _ when IsSteamGuardResult(diagnosticResult) => new(SteamAuthenticationStatus.RequiresSteamGuard, "Steam Guard verification is required."),
+            _ when IsInvalidCredentialResult(diagnosticResult) => new(SteamAuthenticationStatus.InvalidCredentials, "Steam rejected the account name or password."),
+            _ when IsRateLimitedResult(diagnosticResult) => new(SteamAuthenticationStatus.RateLimited, "Steam temporarily limited this authentication attempt."),
+            _ => new(SteamAuthenticationStatus.Failed, "Steam authentication was rejected.")
+        };
+    }
+
+    private static EResult SelectDiagnosticResult(EResult result, EResult? extendedResult) =>
+        IsKnownDiagnosticResult(result) || extendedResult is not { } extended || !IsKnownDiagnosticResult(extended)
+            ? result
+            : extended;
+
+    private static bool IsKnownDiagnosticResult(EResult result) =>
+        IsInvalidSteamGuardCodeResult(result) ||
+        IsSteamGuardResult(result) ||
+        IsInvalidCredentialResult(result) ||
+        IsRateLimitedResult(result);
 
     private static bool IsInvalidSteamGuardCodeResult(EResult result) => result is EResult.InvalidLoginAuthCode or EResult.ExpiredLoginAuthCode;
     private static bool IsSteamGuardResult(EResult result) => result.ToString() is "AccountLogonDenied" or "AccountLogonDeniedNoMail" or "AccountLoginDeniedNeedTwoFactor";
@@ -194,7 +211,7 @@ internal sealed class SteamKitAuthenticationSession : ISteamKitAuthenticationSes
             _ = BeginModernAuthenticationAsync(accountName, completion, cancellationToken);
         });
         using var loggedOn = _callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
-            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString())));
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult)));
         using var disconnected = _callbacks.Subscribe<SteamClient.DisconnectedCallback>(_ =>
             completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed.")));
         using var cancellation = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
