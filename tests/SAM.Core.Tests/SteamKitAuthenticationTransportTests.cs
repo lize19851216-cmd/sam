@@ -117,6 +117,15 @@ public sealed class SteamKitAuthenticationTransportTests
         Assert.DoesNotContain("sensitive", mapped.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Extended_login_result_preserves_a_safe_failure_category()
+    {
+        var mapped = SteamKitAuthenticationResultMapper.From(EResult.Fail, extendedResult: EResult.InvalidPassword);
+
+        Assert.Equal(SteamAuthenticationStatus.InvalidCredentials, mapped.Status);
+        Assert.Equal("Steam rejected the account name or password.", mapped.Message);
+    }
+
     private sealed class StubSessionFactory(ISteamKitAuthenticationSession session) : ISteamKitAuthenticationSessionFactory
     {
         public ISteamKitAuthenticationSession Create() => session;

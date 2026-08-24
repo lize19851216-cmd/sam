@@ -100,6 +100,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: modern SteamKit authentication exceptions retain sanitized Steam result categories without exposing exception details
 - [x] M3: external credential configuration cannot replace SteamKit's non-persistent interactive authenticator
 - [x] M3: Broker composition preserves the host-owned interactive authenticator while prompting only for the short-lived password
+- [x] M3: SteamKit logged-on extended results retain safe credential, Guard, and rate-limit categories
 - [x] M3: local broker protocol rejects non-canonical account names with leading or trailing whitespace
 - [x] M3: local broker responses include account metadata only after a successful authentication outcome
 - [x] Plugin diagnostics: untrusted exception messages are classified without being exposed in the desktop UI
@@ -122,6 +123,7 @@ Milestone 3 — explicit single-account external-broker test path
 - Plugin failure diagnostic sanitization verification — passed, 89/89 tests
 - Locked dependency restore verification — passed, 89/89 tests
 - Broker authenticator-composition regression verification — passed, 89/89 tests
+- Extended SteamKit login-result diagnostic verification — passed, 90/90 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
