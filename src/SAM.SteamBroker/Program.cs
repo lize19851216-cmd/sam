@@ -1,8 +1,8 @@
 using SAM.Core.Steam;
 using SAM.Infrastructure.Steam;
-using QRCoder;
 using SteamKit2;
 using SteamKit2.Authentication;
+using System.Runtime.InteropServices;
 
 var pipeName = args.Length == 1 ? args[0] : "sam-steam-auth";
 try
@@ -16,7 +16,7 @@ catch (ArgumentException exception)
 }
 
 Console.WriteLine("SAM Steam authentication broker is waiting for local requests.");
-Console.WriteLine("QR sign-in is requested only after a local request arrives; no password, code, or token is written to disk.");
+Console.WriteLine("Credentials are requested only after a request arrives and are never written to disk.");
 using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, eventArgs) =>
 {
@@ -26,9 +26,7 @@ Console.CancelKeyPress += (_, eventArgs) =>
 
 try
 {
-    // QR-first is the mature SteamKit authentication path used by established
-    // clients. The desktop/broker boundary remains local and credential-free.
-    var transport = new QrFirstSteamKitBrokerTransport();
+    var transport = new PasswordSteamKitBrokerTransport(new ConsoleSteamLogOnConfigurator());
     var host = new SteamAuthenticationBrokerHost(transport);
     await host.ServeUntilCancelledAsync(pipeName, cancellation.Token);
     return 0;
@@ -44,37 +42,123 @@ catch
     return 1;
 }
 
+internal sealed class ConsoleSteamLogOnConfigurator
+{
+    public void Configure(AuthSessionDetails authSessionDetails)
+    {
+        Console.WriteLine("Enter credentials in this window only. They are masked, kept only in memory, and never written to disk.");
+        Console.Write($"Password for {authSessionDetails.Username} (type now, then press Enter): ");
+        authSessionDetails.Password = ReadSecret();
+        authSessionDetails.IsPersistentSession = false;
+    }
+
+    public static string ReadFinalSteamGuardCode(bool twoFactor)
+    {
+        Console.Write(twoFactor
+            ? "Steam Guard requires a mobile-authenticator code (type now, then press Enter): "
+            : "Steam Guard requires an email code (type now, then press Enter): ");
+        return ReadSecret();
+    }
+
+    private static string ReadSecret()
+    {
+        var value = new List<char>();
+        while (Console.ReadKey(intercept: true) is var key && key.Key != ConsoleKey.Enter)
+        {
+            if (key.Key == ConsoleKey.Backspace)
+            {
+                if (value.Count > 0)
+                {
+                    value.RemoveAt(value.Count - 1);
+                    Console.Write("\b \b");
+                }
+
+                continue;
+            }
+
+            if (!char.IsControl(key.KeyChar))
+            {
+                value.Add(key.KeyChar);
+                Console.Write('*');
+            }
+        }
+
+        Console.WriteLine();
+        try
+        {
+            return new string(CollectionsMarshal.AsSpan(value));
+        }
+        finally
+        {
+            CollectionsMarshal.AsSpan(value).Clear();
+            value.Clear();
+        }
+    }
+}
+
 /// <summary>
-/// QR-first adaptation of the maintained SteamKit and DepotDownloader flow.
-/// A Steam Mobile App confirmation replaces password and Guard-code entry.
-/// The refresh token exists only long enough to complete this one logon.
+/// Password-based adaptation of the maintained SteamKit authentication flow.
+/// Interactive input remains in the separately launched local Broker; neither
+/// passwords nor the transient refresh token are persisted.
 /// </summary>
-internal sealed class QrFirstSteamKitBrokerTransport : ISteamAuthenticationTransport
+internal sealed class PasswordSteamKitBrokerTransport(ConsoleSteamLogOnConfigurator configurator) : ISteamAuthenticationTransport
 {
     public async Task<SteamAuthenticationResult> AuthenticateAsync(string accountName, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accountName);
+        ArgumentNullException.ThrowIfNull(configurator);
 
         var client = new SteamClient();
         var callbacks = new CallbackManager(client);
         var steamUser = client.GetHandler<SteamUser>() ?? throw new InvalidOperationException("SteamKit user handler is unavailable.");
         var completion = new TaskCompletionSource<SteamAuthenticationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        SteamUser.LogOnDetails? finalLogOn = null;
         var authenticationStarted = false;
+        var pendingGuardReconnect = false;
+        var guardRetryCount = 0;
 
-        void StartQrAuthentication()
+        void StartOrResumeLogOn()
         {
+            if (finalLogOn is not null)
+            {
+                steamUser.LogOn(finalLogOn);
+                return;
+            }
+
             if (authenticationStarted)
                 return;
 
             authenticationStarted = true;
-            _ = BeginQrAuthenticationAsync(client, steamUser, completion, cancellationToken);
+            _ = BeginCredentialAuthenticationAsync(client, accountName, completion, cancellationToken, details =>
+            {
+                finalLogOn = details;
+                steamUser.LogOn(details);
+            });
         }
 
-        using var connected = callbacks.Subscribe<SteamClient.ConnectedCallback>(_ => StartQrAuthentication());
+        using var connected = callbacks.Subscribe<SteamClient.ConnectedCallback>(_ => StartOrResumeLogOn());
         using var loggedOn = callbacks.Subscribe<SteamUser.LoggedOnCallback>(callback =>
-            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult)));
+        {
+            if (finalLogOn is not null && TryApplyFinalSteamGuardCode(callback.Result, finalLogOn, ref guardRetryCount))
+            {
+                pendingGuardReconnect = true;
+                client.Disconnect();
+                return;
+            }
+
+            completion.TrySetResult(SteamKitAuthenticationResultMapper.From(callback.Result, callback.ClientSteamID?.ToString(), callback.ExtendedResult));
+        });
         using var disconnected = callbacks.Subscribe<SteamClient.DisconnectedCallback>(_ =>
-            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed.")));
+        {
+            if (pendingGuardReconnect)
+            {
+                pendingGuardReconnect = false;
+                client.Connect();
+                return;
+            }
+
+            completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam connection was closed."));
+        });
         using var cancellation = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
 
         try
@@ -94,27 +178,39 @@ internal sealed class QrFirstSteamKitBrokerTransport : ISteamAuthenticationTrans
         }
     }
 
-    private static async Task BeginQrAuthenticationAsync(
+    private async Task BeginCredentialAuthenticationAsync(
         SteamClient client,
-        SteamUser steamUser,
+        string accountName,
         TaskCompletionSource<SteamAuthenticationResult> completion,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<SteamUser.LogOnDetails> logOn)
     {
         try
         {
-            var session = await client.Authentication.BeginAuthSessionViaQRAsync(new AuthSessionDetails
+            var authenticator = new UserConsoleAuthenticator();
+            var details = new AuthSessionDetails
             {
                 DeviceFriendlyName = "SAM",
-                IsPersistentSession = false
-            }).ConfigureAwait(false);
-            session.ChallengeURLChanged = () => SteamQrConsole.Write(session.ChallengeURL);
-            SteamQrConsole.Write(session.ChallengeURL);
+                Username = accountName,
+                IsPersistentSession = false,
+                Authenticator = authenticator
+            };
+            configurator.Configure(details);
+
+            if (!string.Equals(details.Username, accountName, StringComparison.Ordinal) ||
+                details.IsPersistentSession ||
+                !ReferenceEquals(details.Authenticator, authenticator))
+                throw new InvalidOperationException("The local credential prompt changed a protected authentication setting.");
 
             cancellationToken.ThrowIfCancellationRequested();
-            var pollResponse = await session.PollingWaitForResultAsync(cancellationToken).ConfigureAwait(false);
+            var authSession = await client.Authentication.BeginAuthSessionViaCredentialsAsync(details).ConfigureAwait(false);
+            var pollResponse = await authSession.PollingWaitForResultAsync(cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
-            steamUser.LogOn(new SteamUser.LogOnDetails
+            // Steam returns its canonical account name here. Mature SteamKit
+            // clients use that value rather than rejecting a case-normalized
+            // local label before the final logon can happen.
+            logOn(new SteamUser.LogOnDetails
             {
                 Username = pollResponse.AccountName,
                 AccessToken = pollResponse.RefreshToken,
@@ -134,19 +230,21 @@ internal sealed class QrFirstSteamKitBrokerTransport : ISteamAuthenticationTrans
             completion.TrySetResult(new SteamAuthenticationResult(SteamAuthenticationStatus.Failed, "Steam authentication could not be completed."));
         }
     }
-}
 
-internal static class SteamQrConsole
-{
-    public static void Write(string challengeUrl)
+    private static bool TryApplyFinalSteamGuardCode(EResult result, SteamUser.LogOnDetails logOnDetails, ref int retryCount)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(challengeUrl);
-        Console.WriteLine();
-        Console.WriteLine("Use Steam Mobile App to scan this one-time sign-in QR code and approve the request:");
-        using var generator = new QRCodeGenerator();
-        using var data = generator.CreateQrCode(challengeUrl, QRCodeGenerator.ECCLevel.Q);
-        using var qrCode = new AsciiQRCode(data);
-        Console.WriteLine(qrCode.GetGraphic(1, drawQuietZones: true));
-        Console.WriteLine("Waiting for approval. The QR code may refresh automatically.");
+        var resultName = result.ToString();
+        var requiresEmailCode = resultName is "AccountLogonDenied" or "AccountLogonDeniedNoMail";
+        var requiresTwoFactorCode = resultName == "AccountLoginDeniedNeedTwoFactor";
+        if ((!requiresEmailCode && !requiresTwoFactorCode) || ++retryCount > 3)
+            return false;
+
+        var code = ConsoleSteamLogOnConfigurator.ReadFinalSteamGuardCode(requiresTwoFactorCode);
+        if (requiresTwoFactorCode)
+            logOnDetails.TwoFactorCode = code;
+        else
+            logOnDetails.AuthCode = code;
+
+        return true;
     }
 }

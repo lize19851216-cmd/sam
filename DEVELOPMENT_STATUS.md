@@ -103,7 +103,7 @@ Milestone 3 — explicit single-account external-broker test path
 - [x] M3: SteamKit logged-on extended results retain safe credential, Guard, and rate-limit categories
 - [x] M3: standalone Broker uses SteamKit's direct maintained client and callback model instead of SAM's session wrapper
 - [x] M3: direct Broker supports a non-persistent Steam Guard fallback after final Steam logon, following the mature reconnect pattern
-- [x] M3: replace password-based Broker test path with QR-first authentication backed by SteamKit and a locally rendered one-time QR code
+- [x] M3: password-based Broker test path uses the mature SteamKit credential-session flow with non-persistent tokens
 - [x] M3: local broker protocol rejects non-canonical account names with leading or trailing whitespace
 - [x] M3: local broker responses include account metadata only after a successful authentication outcome
 - [x] Plugin diagnostics: untrusted exception messages are classified without being exposed in the desktop UI
@@ -129,7 +129,7 @@ Milestone 3 — explicit single-account external-broker test path
 - Extended SteamKit login-result diagnostic verification — passed, 90/90 tests
 - Direct SteamKit Broker composition verification — passed, 90/90 tests
 - Direct Broker final-Steam-Guard fallback verification — passed, 90/90 tests
-- QR-first Broker startup and credential-free probe verification — passed, 90/90 tests
+- Password Broker startup, canonical-account handoff, and credential-free probe verification — passed, 90/90 tests
 - `dotnet test tests/SAM.Core.Tests/SAM.Core.Tests.csproj -c Release --no-build` — passed, 80/80 tests
 - CI-equivalent Release TRX test-results generation — passed, 60/60 tests and produced `TestResults/sam-tests.trx`
 - `pwsh -NoProfile -File .\scripts\build.ps1` — passed from clean publish outputs; published desktop and broker artifacts with a 16-entry SHA-256 manifest
